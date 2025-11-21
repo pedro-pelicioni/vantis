@@ -17,9 +17,7 @@ export const CardVisualScreen: React.FC = () => {
   const {colors: themeColors, isDark} = useTheme();
   const {account} = useWallet();
 
-  const maskedPublicKey = account?.publicKey
-    ? `${account.publicKey.slice(0, 4)} **** **** ${account.publicKey.slice(-4)}`
-    : '**** **** **** ****';
+  const cardNumber = account?.cardNumber || '**** **** **** ****';
 
   return (
     <ScrollView style={[styles.container, {backgroundColor: themeColors.bgPrimary}]}>
@@ -47,7 +45,7 @@ export const CardVisualScreen: React.FC = () => {
           </View>
 
           <View style={styles.cardNumberContainer}>
-            <Text style={styles.cardNumber}>{maskedPublicKey}</Text>
+            <Text style={styles.cardNumber}>{cardNumber}</Text>
           </View>
 
           <View style={styles.cardFooter}>

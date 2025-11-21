@@ -14,22 +14,22 @@ export const PayModeScreen: React.FC = () => {
 
   const paymentOptions = [
     {
-      title: 'Make Payment',
-      subtitle: 'Pay with installments',
-      icon: 'card',
-      onPress: () => navigation.navigate('Payment' as never),
+      title: 'Send',
+      subtitle: 'Transfer to another wallet',
+      icon: 'send',
+      onPress: () => navigation.navigate('Transfer' as never),
+    },
+    {
+      title: 'Receive',
+      subtitle: 'Show your wallet address',
+      icon: 'download',
+      onPress: () => navigation.navigate('Receive' as never),
     },
     {
       title: 'Credit Dashboard',
       subtitle: 'View credit and collateral',
       icon: 'trending-up',
       onPress: () => navigation.navigate('CreditDashboard' as never),
-    },
-    {
-      title: 'Send Payment',
-      subtitle: 'Transfer to another wallet',
-      icon: 'send',
-      onPress: () => navigation.navigate('Transfer' as never),
     },
   ];
 
