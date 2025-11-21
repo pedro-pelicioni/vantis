@@ -7,6 +7,7 @@ import {
   ScrollView,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import {Ionicons} from '@expo/vector-icons';
 import {useTheme} from '../theme/ThemeContext';
 import {StatusBar} from '../components/StatusBar';
 import {spacing, borderRadius, colors} from '../theme/colors';
@@ -17,6 +18,10 @@ export const WelcomeScreen: React.FC = () => {
 
   const createAccount = () => {
     navigation.navigate('Onboarding' as never);
+  };
+
+  const handleLogin = () => {
+    navigation.navigate('WalletConnect' as never);
   };
 
   return (
@@ -83,7 +88,7 @@ export const WelcomeScreen: React.FC = () => {
             <Text style={[styles.loginText, {color: themeColors.textSecondary}]}>
               Already have an account?{' '}
             </Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={handleLogin}>
               <Text
                 style={[
                   styles.loginLinkText,

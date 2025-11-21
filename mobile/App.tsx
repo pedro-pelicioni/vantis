@@ -7,11 +7,17 @@ import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {StatusBar as ExpoStatusBar} from 'expo-status-bar';
 
 import {ThemeProvider, useTheme} from './src/theme/ThemeContext';
+import {WalletProvider, useWallet} from './src/contexts/WalletContext';
 import {WelcomeScreen} from './src/screens/WelcomeScreen';
 import {OnboardingScreen} from './src/screens/OnboardingScreen';
+import {WalletConnectScreen} from './src/screens/WalletConnectScreen';
 import {HomeScreen} from './src/screens/HomeScreen';
 import {CardScreen} from './src/screens/CardScreen';
+import {CardVisualScreen} from './src/screens/CardVisualScreen';
 import {PayModeScreen} from './src/screens/PayModeScreen';
+import {PaymentScreen} from './src/screens/PaymentScreen';
+import {TransferScreen} from './src/screens/TransferScreen';
+import {CreditDashboardScreen} from './src/screens/CreditDashboardScreen';
 import {DeFiScreen} from './src/screens/DeFiScreen';
 import {ActivityScreen} from './src/screens/ActivityScreen';
 import {SettingsScreen} from './src/screens/SettingsScreen';
@@ -38,6 +44,12 @@ const MainTabs = () => {
 
 const AppNavigator = () => {
   const {isDark} = useTheme();
+  const {isConnected, isLoading} = useWallet();
+
+  // Show loading while checking wallet connection
+  if (isLoading) {
+    return null; // Or a loading screen
+  }
 
   return (
     <NavigationContainer>
@@ -47,10 +59,25 @@ const AppNavigator = () => {
           headerShown: false,
           animation: 'slide_from_right',
         }}>
-        <Stack.Screen name="Welcome" component={WelcomeScreen} />
-        <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-        <Stack.Screen name="Main" component={MainTabs} />
+        {!isConnected ? (
+          <>
+            <Stack.Screen name="Welcome" component={WelcomeScreen} />
+            <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+            <Stack.Screen name="WalletConnect" component={WalletConnectScreen} />
+          </>
+        ) : (
+          <>
+            <Stack.Screen name="Main" component={MainTabs} />
+            <Stack.Screen name="Welcome" component={WelcomeScreen} />
+            <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+            <Stack.Screen name="WalletConnect" component={WalletConnectScreen} />
+          </>
+        )}
         <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="CardVisual" component={CardVisualScreen} />
+        <Stack.Screen name="Payment" component={PaymentScreen} />
+        <Stack.Screen name="Transfer" component={TransferScreen} />
+        <Stack.Screen name="CreditDashboard" component={CreditDashboardScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -61,7 +88,9 @@ const App = () => {
     <GestureHandlerRootView style={{flex: 1}}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <AppNavigator />
+          <WalletProvider>
+            <AppNavigator />
+          </WalletProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

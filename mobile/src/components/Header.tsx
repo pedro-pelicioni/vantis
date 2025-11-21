@@ -1,7 +1,9 @@
 import React from 'react';
 import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import {Ionicons} from '@expo/vector-icons';
 import {useTheme} from '../theme/ThemeContext';
+import {useWallet} from '../contexts/WalletContext';
 import {ThemeToggle} from './ThemeToggle';
 import {spacing} from '../theme/colors';
 
@@ -11,30 +13,42 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({
-  walletAddress = '0x670a...31e9',
+  walletAddress,
   showMenu = false,
 }) => {
   const navigation = useNavigation();
-  const {colors} = useTheme();
+  const {colors: themeColors} = useTheme();
+  const {account} = useWallet();
+  
+  const displayAddress = walletAddress || 
+    (account?.publicKey 
+      ? `${account.publicKey.slice(0, 6)}...${account.publicKey.slice(-4)}`
+      : 'Not connected');
 
   return (
     <View
       style={[
         styles.container,
         {
-          backgroundColor: colors.bgPrimary,
-          borderBottomColor: colors.borderColor,
+          backgroundColor: themeColors.bgPrimary,
+          borderBottomColor: themeColors.borderColor,
         },
       ]}>
-      {showMenu && <Text style={styles.menuIcon}>☰</Text>}
-      <Text style={[styles.walletAddress, {color: colors.textPrimary}]}>
-        {walletAddress}
+      {showMenu && (
+        <TouchableOpacity>
+          <Ionicons name="menu" size={24} color={themeColors.textPrimary} />
+        </TouchableOpacity>
+      )}
+      <Text style={[styles.walletAddress, {color: themeColors.textPrimary}]}>
+        {displayAddress}
       </Text>
       <View style={styles.actions}>
         <ThemeToggle />
-        <Text style={styles.icon}>👁</Text>
+        <TouchableOpacity>
+          <Ionicons name="eye" size={20} color={themeColors.textPrimary} />
+        </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate('Settings' as never)}>
-          <Text style={styles.icon}>⚙</Text>
+          <Ionicons name="settings" size={20} color={themeColors.textPrimary} />
         </TouchableOpacity>
       </View>
     </View>
@@ -49,20 +63,14 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderBottomWidth: 1,
   },
-  menuIcon: {
-    fontSize: 24,
-    position: 'relative',
-  },
   walletAddress: {
     fontSize: 14,
+    fontFamily: 'monospace',
   },
   actions: {
     flexDirection: 'row',
     gap: spacing.md,
     alignItems: 'center',
-  },
-  icon: {
-    fontSize: 20,
   },
 });
 

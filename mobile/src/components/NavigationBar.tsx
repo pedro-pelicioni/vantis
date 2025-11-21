@@ -1,27 +1,27 @@
 import React from 'react';
 import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
-import {useNavigation, useRoute} from '@react-navigation/native';
 import {BottomTabBarProps} from '@react-navigation/bottom-tabs';
+import {Ionicons} from '@expo/vector-icons';
 import {useTheme} from '../theme/ThemeContext';
-import {spacing, borderRadius} from '../theme/colors';
+import {spacing, borderRadius, colors} from '../theme/colors';
 
 type NavItem = {
   name: string;
-  icon: string;
+  icon: keyof typeof Ionicons.glyphMap;
   label: string;
   route: string;
 };
 
 const navItems: NavItem[] = [
-  {name: 'home', icon: '🏠', label: 'Home', route: 'Home'},
-  {name: 'card', icon: '💳', label: 'Card', route: 'Card'},
-  {name: 'pay-mode', icon: '🔄', label: 'Pay Mode', route: 'PayMode'},
-  {name: 'defi', icon: '📦', label: 'DeFi', route: 'DeFi'},
-  {name: 'activity', icon: '📄', label: 'Activity', route: 'Activity'},
+  {name: 'home', icon: 'home', label: 'Home', route: 'Home'},
+  {name: 'card', icon: 'card', label: 'Card', route: 'Card'},
+  {name: 'pay-mode', icon: 'swap-horizontal', label: 'Pay', route: 'PayMode'},
+  {name: 'defi', icon: 'trending-up', label: 'DeFi', route: 'DeFi'},
+  {name: 'activity', icon: 'list', label: 'Activity', route: 'Activity'},
 ];
 
 export const NavigationBar: React.FC<BottomTabBarProps> = ({state, descriptors, navigation}) => {
-  const {colors} = useTheme();
+  const {colors: themeColors} = useTheme();
 
   const currentRoute = state.routes[state.index].name;
 
@@ -42,8 +42,8 @@ export const NavigationBar: React.FC<BottomTabBarProps> = ({state, descriptors, 
       style={[
         styles.container,
         {
-          backgroundColor: colors.bgSecondary,
-          borderTopColor: colors.borderColor,
+          backgroundColor: themeColors.bgSecondary,
+          borderTopColor: themeColors.borderColor,
         },
       ]}>
       {navItems.map(item => {
@@ -54,12 +54,16 @@ export const NavigationBar: React.FC<BottomTabBarProps> = ({state, descriptors, 
             style={styles.navItem}
             onPress={() => navigate(item.route)}
             activeOpacity={0.7}>
-            <Text style={styles.navIcon}>{item.icon}</Text>
+            <Ionicons
+              name={item.icon}
+              size={24}
+              color={isActive ? colors.accentTeal : themeColors.textPrimary}
+            />
             <Text
               style={[
                 styles.navLabel,
                 {
-                  color: isActive ? colors.accentTeal : colors.textPrimary,
+                  color: isActive ? colors.accentTeal : themeColors.textPrimary,
                 },
               ]}>
               {item.label}
@@ -89,9 +93,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     opacity: 0.6,
-  },
-  navIcon: {
-    fontSize: 24,
   },
   navLabel: {
     fontSize: 12,

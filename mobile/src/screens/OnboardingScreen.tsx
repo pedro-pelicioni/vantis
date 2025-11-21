@@ -17,9 +17,8 @@ export const OnboardingScreen: React.FC = () => {
   const {colors: themeColors} = useTheme();
 
   const createAccount = () => {
-    // Handle account creation with passkey
-    console.log('Creating account with passkey...');
-    Alert.alert('Account Creation', 'Passkey setup will be implemented');
+    // Navigate to wallet connection after onboarding
+    navigation.navigate('WalletConnect' as never);
   };
 
   return (

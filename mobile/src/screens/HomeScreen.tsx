@@ -1,33 +1,82 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  RefreshControl,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import {Ionicons} from '@expo/vector-icons';
 import {useTheme} from '../theme/ThemeContext';
+import {useWallet} from '../contexts/WalletContext';
 import {StatusBar} from '../components/StatusBar';
 import {Header} from '../components/Header';
+import {SkeletonCard} from '../components/SkeletonLoader';
 import {spacing, borderRadius, colors} from '../theme/colors';
 
 export const HomeScreen: React.FC = () => {
   const navigation = useNavigation();
   const {colors: themeColors} = useTheme();
+  const {account, isConnected, refreshAccount, loadTransactions, isLoading} = useWallet();
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (isConnected) {
+      refreshAccount();
+      loadTransactions();
+    }
+  }, [isConnected]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    if (isConnected) {
+      await refreshAccount();
+      await loadTransactions();
+    }
+    setRefreshing(false);
+  };
+
+  if (!isConnected) {
+    return (
+      <View style={[styles.container, {backgroundColor: themeColors.bgPrimary}]}>
+        <StatusBar />
+        <Header showMenu={true} />
+        <View style={styles.emptyState}>
+          <Ionicons name="wallet-outline" size={64} color={themeColors.textSecondary} />
+          <Text style={[styles.emptyText, {color: themeColors.textPrimary}]}>
+            Connect your wallet to get started
+          </Text>
+          <TouchableOpacity
+            style={[styles.connectButton, {backgroundColor: colors.accentTeal}]}
+            onPress={() => navigation.navigate('WalletConnect' as never)}>
+            <Ionicons name="wallet" size={20} color={themeColors.bgPrimary} />
+            <Text style={[styles.connectButtonText, {color: themeColors.bgPrimary}]}>
+              Connect Wallet
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, {backgroundColor: themeColors.bgPrimary}]}>
       <StatusBar />
       <Header showMenu={true} />
 
-      <ScrollView style={styles.content}>
+      <ScrollView
+        style={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }>
         <View style={styles.portfolioSection}>
           <Text style={[styles.portfolioLink, {color: themeColors.textSecondary}]}>
             Your portfolio >
           </Text>
           <Text style={[styles.balance, {color: themeColors.textPrimary}]}>
-            US$ 0,00
+            {account?.balance || '0.00'} XLM
           </Text>
         </View>
 
@@ -40,7 +89,9 @@ export const HomeScreen: React.FC = () => {
                 backgroundColor: colors.accentTeal,
               },
             ]}
+            onPress={() => navigation.navigate('Payment' as never)}
             activeOpacity={0.8}>
+            <Ionicons name="card" size={20} color={themeColors.bgPrimary} />
             <Text
               style={[
                 styles.btnText,
@@ -48,9 +99,8 @@ export const HomeScreen: React.FC = () => {
                   color: themeColors.bgPrimary,
                 },
               ]}>
-              Add funds
+              Make Payment
             </Text>
-            <Text style={styles.btnIcon}>↓</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -62,11 +112,12 @@ export const HomeScreen: React.FC = () => {
                 borderColor: themeColors.borderColor,
               },
             ]}
+            onPress={() => navigation.navigate('Transfer' as never)}
             activeOpacity={0.8}>
+            <Ionicons name="send" size={20} color={themeColors.textPrimary} />
             <Text style={[styles.btnText, {color: themeColors.textPrimary}]}>
               Send
             </Text>
-            <Text style={styles.btnIcon}>↑</Text>
           </TouchableOpacity>
         </View>
 
@@ -103,7 +154,7 @@ export const HomeScreen: React.FC = () => {
             </View>
 
             <View style={styles.stepItem}>
-              <Text style={styles.stepIcon}>👤</Text>
+              <Ionicons name="person" size={24} color={colors.accentTeal} />
               <Text style={[styles.stepText, {color: themeColors.textPrimary}]}>
                 Add funds to account
               </Text>
@@ -183,7 +234,7 @@ export const HomeScreen: React.FC = () => {
               Upcoming payments
             </Text>
             <View style={styles.emptyState}>
-              <Text style={styles.emoji}>🎉</Text>
+              <Ionicons name="checkmark-circle" size={48} color={colors.accentTeal} />
               <Text
                 style={[
                   styles.emptyStateText,
@@ -222,7 +273,7 @@ export const HomeScreen: React.FC = () => {
               Latest activity
             </Text>
             <View style={styles.emptyState}>
-              <Text style={styles.emoji}>📋</Text>
+              <Ionicons name="document-text" size={48} color={colors.accentTeal} />
               <Text
                 style={[
                   styles.emptyStateText,
@@ -317,6 +368,29 @@ const styles = StyleSheet.create({
   btnIcon: {
     fontSize: 20,
   },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: spacing.xl * 2,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: spacing.lg,
+    marginBottom: spacing.xl,
+    textAlign: 'center',
+  },
+  connectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.medium,
+  },
+  connectButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
   cardsGrid: {
     gap: spacing.md,
     marginTop: spacing.lg,
@@ -350,9 +424,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     marginBottom: spacing.sm,
-  },
-  stepIcon: {
-    fontSize: 24,
   },
   stepText: {
     fontSize: 16,
@@ -393,10 +464,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing.xl,
     paddingHorizontal: spacing.md,
-  },
-  emoji: {
-    fontSize: 48,
-    marginBottom: spacing.md,
   },
   emptyStateText: {
     fontSize: 16,

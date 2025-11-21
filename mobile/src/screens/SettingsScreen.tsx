@@ -8,7 +8,9 @@ import {
   Alert,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import {Ionicons} from '@expo/vector-icons';
 import {useTheme} from '../theme/ThemeContext';
+import {useWallet} from '../contexts/WalletContext';
 import {StatusBar} from '../components/StatusBar';
 import {ThemeToggle} from '../components/ThemeToggle';
 import {spacing, borderRadius, colors} from '../theme/colors';
@@ -16,6 +18,7 @@ import {spacing, borderRadius, colors} from '../theme/colors';
 export const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
   const {colors: themeColors} = useTheme();
+  const {account, isConnected, disconnectWallet} = useWallet();
 
   const openSupport = () => {
     Alert.alert('Support', 'Support information');
@@ -23,16 +26,16 @@ export const SettingsScreen: React.FC = () => {
 
   const handleLogout = () => {
     Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
+      'Disconnect Wallet',
+      'Are you sure you want to disconnect your wallet?',
       [
         {text: 'Cancel', style: 'cancel'},
         {
-          text: 'Logout',
+          text: 'Disconnect',
           style: 'destructive',
-          onPress: () => {
-            console.log('Logging out...');
-            // Handle logout logic
+          onPress: async () => {
+            await disconnectWallet();
+            navigation.navigate('Welcome' as never);
           },
         },
       ],
@@ -89,15 +92,7 @@ export const SettingsScreen: React.FC = () => {
                   borderColor: colors.accentTeal,
                 },
               ]}>
-              <Text
-                style={[
-                  styles.settingsIconText,
-                  {
-                    color: colors.accentTeal,
-                  },
-                ]}>
-                🎨
-              </Text>
+              <Ionicons name="color-palette" size={20} color={colors.accentTeal} />
             </View>
             <View style={styles.themeControl}>
               <Text
@@ -129,15 +124,7 @@ export const SettingsScreen: React.FC = () => {
                   borderColor: colors.accentTeal,
                 },
               ]}>
-              <Text
-                style={[
-                  styles.settingsIconText,
-                  {
-                    color: colors.accentTeal,
-                  },
-                ]}>
-                ?
-              </Text>
+              <Ionicons name="help-circle" size={20} color={colors.accentTeal} />
             </View>
             <Text
               style={[
@@ -161,15 +148,7 @@ export const SettingsScreen: React.FC = () => {
                   borderColor: colors.accentRed,
                 },
               ]}>
-              <Text
-                style={[
-                  styles.settingsIconText,
-                  {
-                    color: colors.accentRed,
-                  },
-                ]}>
-                →
-              </Text>
+              <Ionicons name="log-out" size={20} color={colors.accentRed} />
             </View>
             <Text
               style={[
@@ -178,7 +157,7 @@ export const SettingsScreen: React.FC = () => {
                   color: themeColors.textPrimary,
                 },
               ]}>
-              Logout
+              {isConnected ? 'Disconnect Wallet' : 'Logout'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -262,10 +241,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   themeIcon: {},
-  settingsIconText: {
-    fontSize: 20,
-    fontWeight: '700',
-  },
   settingsLabel: {
     fontSize: 16,
     fontWeight: '500',
@@ -276,6 +251,14 @@ const styles = StyleSheet.create({
   },
   versionText: {
     fontSize: 12,
+  },
+  walletInfo: {
+    flex: 1,
+  },
+  walletAddress: {
+    fontSize: 12,
+    marginTop: spacing.xs,
+    fontFamily: 'monospace',
   },
 });
 
