@@ -1,0 +1,32 @@
+# Rust/Cargo
+target/
+Cargo.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (mobile)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# React Native
+*.hprof
+.expo/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+*.wasm
