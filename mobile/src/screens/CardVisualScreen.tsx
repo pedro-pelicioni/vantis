@@ -1,9 +1,11 @@
 import React from 'react';
-import {View, Text, StyleSheet, Dimensions} from 'react-native';
+import {View, Text, StyleSheet, Dimensions, ScrollView, TouchableOpacity} from 'react-native';
 import {LinearGradient} from 'expo-linear-gradient';
 import {Ionicons} from '@expo/vector-icons';
+import {useNavigation} from '@react-navigation/native';
 import {useTheme} from '../theme/ThemeContext';
 import {useWallet} from '../contexts/WalletContext';
+import {StatusBar} from '../components/StatusBar';
 import {spacing, borderRadius, colors} from '../theme/colors';
 
 const {width} = Dimensions.get('window');
@@ -20,7 +22,19 @@ export const CardVisualScreen: React.FC = () => {
     : '**** **** **** ****';
 
   return (
-    <View style={[styles.container, {backgroundColor: themeColors.bgPrimary}]}>
+    <ScrollView style={[styles.container, {backgroundColor: themeColors.bgPrimary}]}>
+      <StatusBar />
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, {color: themeColors.textPrimary}]}>
+          Your Card
+        </Text>
+        <View style={styles.placeholder} />
+      </View>
       <View style={styles.cardContainer}>
         <LinearGradient
           colors={isDark ? [colors.accentTeal, colors.accentTealDark] : [colors.accentTealDark, colors.accentTeal]}

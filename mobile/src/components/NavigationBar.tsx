@@ -1,6 +1,7 @@
 import React from 'react';
 import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
 import {BottomTabBarProps} from '@react-navigation/bottom-tabs';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Ionicons} from '@expo/vector-icons';
 import {useTheme} from '../theme/ThemeContext';
 import {spacing, borderRadius, colors} from '../theme/colors';
@@ -22,6 +23,7 @@ const navItems: NavItem[] = [
 
 export const NavigationBar: React.FC<BottomTabBarProps> = ({state, descriptors, navigation}) => {
   const {colors: themeColors} = useTheme();
+  const insets = useSafeAreaInsets();
 
   const currentRoute = state.routes[state.index].name;
 
@@ -44,6 +46,7 @@ export const NavigationBar: React.FC<BottomTabBarProps> = ({state, descriptors, 
         {
           backgroundColor: themeColors.bgSecondary,
           borderTopColor: themeColors.borderColor,
+          paddingBottom: insets.bottom,
         },
       ]}>
       {navItems.map(item => {
