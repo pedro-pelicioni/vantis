@@ -8,6 +8,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Ionicons} from '@expo/vector-icons';
 import {useTheme} from '../theme/ThemeContext';
 import {useWallet} from '../contexts/WalletContext';
@@ -21,6 +22,7 @@ export const HomeScreen: React.FC = () => {
   const {colors: themeColors} = useTheme();
   const {account, isConnected, refreshAccount, loadTransactions, isLoading} = useWallet();
   const [refreshing, setRefreshing] = useState(false);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (isConnected) {
@@ -68,6 +70,7 @@ export const HomeScreen: React.FC = () => {
 
       <ScrollView
         style={styles.content}
+        contentContainerStyle={{paddingBottom: insets.bottom + 80}}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }>

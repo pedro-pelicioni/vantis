@@ -1,8 +1,26 @@
-import {Keypair, Server, TransactionBuilder, Operation, Asset, Networks} from '@stellar/stellar-sdk';
+// Note: @stellar/stellar-sdk is not fully compatible with React Native
+// For now, using mock implementations. In production, use a React Native compatible SDK
+// or implement via backend API calls
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const STELLAR_NETWORK = Networks.TESTNET; // Change to Networks.PUBLIC for mainnet
+// Mock Stellar SDK types and functions for React Native compatibility
+const STELLAR_NETWORK = 'TESTNET'; // Change to 'PUBLIC' for mainnet
 const HORIZON_URL = 'https://horizon-testnet.stellar.org'; // Change for mainnet
+
+// Mock Keypair for React Native
+const generateKeypair = () => {
+  // Generate a mock keypair - in production, use proper crypto libraries
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let publicKey = 'G';
+  let secretKey = 'S';
+  
+  for (let i = 0; i < 55; i++) {
+    publicKey += chars[Math.floor(Math.random() * chars.length)];
+    secretKey += chars[Math.floor(Math.random() * chars.length)];
+  }
+  
+  return {publicKey, secretKey};
+};
 
 export interface WalletAccount {
   publicKey: string;
@@ -38,37 +56,43 @@ export interface InstallmentInfo {
 }
 
 class WalletService {
-  private server: Server;
   private currentAccount: WalletAccount | null = null;
 
   constructor() {
-    this.server = new Server(HORIZON_URL);
+    // Server initialization removed - not compatible with React Native
+    // Use backend API or fetch directly in production
   }
 
   // Generate new wallet
   async generateWallet(): Promise<{publicKey: string; secretKey: string}> {
-    const keypair = Keypair.random();
-    return {
-      publicKey: keypair.publicKey(),
-      secretKey: keypair.secret(),
-    };
+    // In production, use proper crypto libraries compatible with React Native
+    // For now, using mock implementation
+    return generateKeypair();
   }
 
   // Connect to existing wallet (OpenZeppelin Smart Account compatible)
   async connectWallet(publicKey: string): Promise<WalletAccount> {
     try {
-      const account = await this.server.loadAccount(publicKey);
+      // In production, fetch from Stellar Horizon API or use backend
+      // For now, using mock data
+      // TODO: Implement proper Stellar account loading via backend API
       
-      const balances: AssetBalance[] = account.balances.map(balance => ({
-        assetCode: balance.asset_code || 'XLM',
-        assetIssuer: balance.asset_issuer,
-        balance: balance.balance,
-        limit: balance.limit,
-      }));
+      // Validate public key format (Stellar keys start with G)
+      if (!publicKey.startsWith('G') || publicKey.length !== 56) {
+        throw new Error('Invalid Stellar public key format');
+      }
+
+      // Mock account data - in production, fetch from Horizon API
+      const balances: AssetBalance[] = [
+        {
+          assetCode: 'XLM',
+          balance: '1000.00',
+        },
+      ];
 
       const walletAccount: WalletAccount = {
-        publicKey: account.accountId(),
-        balance: balances.find(b => b.assetCode === 'XLM')?.balance || '0',
+        publicKey: publicKey,
+        balance: '1000.00',
         assets: balances,
       };
 
@@ -76,8 +100,8 @@ class WalletService {
       await this.saveWallet(publicKey);
       
       return walletAccount;
-    } catch (error) {
-      throw new Error(`Failed to connect wallet: ${error}`);
+    } catch (error: any) {
+      throw new Error(`Failed to connect wallet: ${error.message || error}`);
     }
   }
 
@@ -121,16 +145,40 @@ class WalletService {
       throw new Error('No wallet connected');
     }
 
-    // In a real implementation, you would need the secret key
-    // For now, this is a placeholder that returns a transaction hash
-    // In production, use OpenZeppelin Smart Account for signing
-    
-    const asset = assetCode === 'XLM' 
-      ? Asset.native() 
-      : new Asset(assetCode, assetIssuer!);
+    // Validate destination
+    if (!destination.startsWith('G') || destination.length !== 56) {
+      throw new Error('Invalid destination address');
+    }
 
-    // This is a mock transaction - in real app, use Smart Account signing
+    // Validate amount
+    const amountNum = parseFloat(amount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      throw new Error('Invalid amount');
+    }
+
+    // Check balance
+    const balanceNum = parseFloat(this.currentAccount.balance);
+    if (amountNum > balanceNum) {
+      throw new Error('Insufficient balance');
+    }
+
+    // In production, this would:
+    // 1. Create transaction using OpenZeppelin Smart Account
+    // 2. Sign transaction (via backend or secure storage)
+    // 3. Submit to Stellar network via Horizon API or backend
+    
+    // Mock transaction hash for development
     const transactionHash = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Update balance (mock - in production, wait for network confirmation)
+    if (this.currentAccount) {
+      const newBalance = (balanceNum - amountNum).toFixed(2);
+      this.currentAccount.balance = newBalance;
+      const xlmAsset = this.currentAccount.assets.find(a => a.assetCode === 'XLM');
+      if (xlmAsset) {
+        xlmAsset.balance = newBalance;
+      }
+    }
     
     return transactionHash;
   }
