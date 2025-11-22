@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Ionicons} from '@expo/vector-icons';
 import {useTheme} from '../theme/ThemeContext';
 import {useWallet} from '../contexts/WalletContext';
@@ -22,6 +23,7 @@ export const WalletConnectScreen: React.FC = () => {
   const {connectWallet, isLoading} = useWallet();
   const [publicKey, setPublicKey] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const handleConnect = async () => {
     if (!publicKey.trim()) {
@@ -80,7 +82,7 @@ export const WalletConnectScreen: React.FC = () => {
     <ScrollView
       style={[styles.container, {backgroundColor: themeColors.bgPrimary}]}>
       <View style={styles.content}>
-        <View style={styles.header}>
+        <View style={[styles.header, {paddingTop: insets.top}]}>
           <Ionicons
             name="wallet"
             size={64}

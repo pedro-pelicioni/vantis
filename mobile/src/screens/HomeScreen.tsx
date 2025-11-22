@@ -135,12 +135,6 @@ export const HomeScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.vantisTitle}>
-          <Text style={[styles.vantisText, {color: colors.accentTeal}]}>
-            VANTIS
-          </Text>
-        </View>
-
         <View style={styles.cardsGrid}>
           <View
             style={[
@@ -405,15 +399,6 @@ const styles = StyleSheet.create({
   },
   footerLink: {
     textDecorationLine: 'underline',
-  },
-  vantisTitle: {
-    alignItems: 'center',
-    marginVertical: spacing.xl,
-  },
-  vantisText: {
-    fontSize: 48,
-    fontWeight: '700',
-    letterSpacing: 4,
   },
   balanceSubtext: {
     fontSize: 16,

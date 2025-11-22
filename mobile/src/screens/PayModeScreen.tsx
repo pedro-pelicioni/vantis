@@ -1,6 +1,7 @@
 import React from 'react';
 import {View, Text, TouchableOpacity, StyleSheet, ScrollView} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Ionicons} from '@expo/vector-icons';
 import {useTheme} from '../theme/ThemeContext';
 import {useWallet} from '../contexts/WalletContext';
@@ -11,6 +12,7 @@ export const PayModeScreen: React.FC = () => {
   const navigation = useNavigation();
   const {colors: themeColors} = useTheme();
   const {isConnected} = useWallet();
+  const insets = useSafeAreaInsets();
 
   const paymentOptions = [
     {
@@ -55,7 +57,9 @@ export const PayModeScreen: React.FC = () => {
   }
 
   return (
-    <ScrollView style={[styles.container, {backgroundColor: themeColors.bgPrimary}]}>
+    <ScrollView 
+      style={[styles.container, {backgroundColor: themeColors.bgPrimary}]}
+      contentContainerStyle={{paddingTop: insets.top, paddingBottom: insets.bottom + 80}}>
       <StatusBar />
       <View style={styles.content}>
         <Text style={[styles.title, {color: themeColors.textPrimary}]}>

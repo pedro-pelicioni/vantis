@@ -1,5 +1,6 @@
 import React from 'react';
 import {View, Text, StyleSheet, ScrollView} from 'react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '../theme/ThemeContext';
 import {useWallet} from '../contexts/WalletContext';
 import {StatusBar} from '../components/StatusBar';
@@ -9,6 +10,7 @@ import {spacing, borderRadius, colors} from '../theme/colors';
 export const DeFiScreen: React.FC = () => {
   const {colors: themeColors} = useTheme();
   const {account, isConnected} = useWallet();
+  const insets = useSafeAreaInsets();
 
   if (!isConnected || !account) {
     return (
@@ -25,7 +27,9 @@ export const DeFiScreen: React.FC = () => {
   }
 
   return (
-    <ScrollView style={[styles.container, {backgroundColor: themeColors.bgPrimary}]}>
+    <ScrollView 
+      style={[styles.container, {backgroundColor: themeColors.bgPrimary}]}
+      contentContainerStyle={{paddingTop: insets.top, paddingBottom: insets.bottom + 80}}>
       <StatusBar />
       <View style={styles.content}>
         <Text style={[styles.title, {color: themeColors.textPrimary}]}>

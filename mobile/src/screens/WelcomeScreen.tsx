@@ -7,14 +7,17 @@ import {
   ScrollView,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Ionicons} from '@expo/vector-icons';
 import {useTheme} from '../theme/ThemeContext';
 import {StatusBar} from '../components/StatusBar';
+import {VantisLogo} from '../components/VantisLogo';
 import {spacing, borderRadius, colors} from '../theme/colors';
 
 export const WelcomeScreen: React.FC = () => {
   const navigation = useNavigation();
   const {colors: themeColors} = useTheme();
+  const insets = useSafeAreaInsets();
 
   const createAccount = () => {
     navigation.navigate('Onboarding' as never);
@@ -26,7 +29,8 @@ export const WelcomeScreen: React.FC = () => {
 
   return (
     <ScrollView
-      style={[styles.container, {backgroundColor: themeColors.bgPrimary}]}>
+      style={[styles.container, {backgroundColor: themeColors.bgPrimary}]}
+      contentContainerStyle={{paddingTop: insets.top}}>
       <StatusBar />
       <View style={styles.content}>
         <View style={styles.illustrationSection}>
@@ -40,9 +44,7 @@ export const WelcomeScreen: React.FC = () => {
             ]}
           />
           <View style={styles.illustrationElements}>
-            <Text style={styles.calendarIcon}>📅</Text>
-            <Text style={styles.clockIcon}>🕐</Text>
-            <Text style={styles.coins}>💰</Text>
+            <VantisLogo size="large" variant="light" showText={true} />
           </View>
         </View>
 
@@ -133,23 +135,9 @@ const styles = StyleSheet.create({
   },
   illustrationElements: {
     position: 'relative',
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.lg,
     zIndex: 1,
-  },
-  calendarIcon: {
-    fontSize: 100,
-  },
-  clockIcon: {
-    fontSize: 80,
-  },
-  coins: {
-    position: 'absolute',
-    fontSize: 40,
-    top: '10%',
-    right: '10%',
   },
   textSection: {
     padding: spacing.xl,

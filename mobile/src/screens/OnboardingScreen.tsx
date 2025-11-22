@@ -8,6 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '../theme/ThemeContext';
 import {StatusBar} from '../components/StatusBar';
 import {spacing, borderRadius, colors} from '../theme/colors';
@@ -15,6 +16,7 @@ import {spacing, borderRadius, colors} from '../theme/colors';
 export const OnboardingScreen: React.FC = () => {
   const navigation = useNavigation();
   const {colors: themeColors} = useTheme();
+  const insets = useSafeAreaInsets();
 
   const createAccount = () => {
     // Navigate to wallet connection after onboarding
@@ -23,7 +25,8 @@ export const OnboardingScreen: React.FC = () => {
 
   return (
     <ScrollView
-      style={[styles.container, {backgroundColor: themeColors.bgPrimary}]}>
+      style={[styles.container, {backgroundColor: themeColors.bgPrimary}]}
+      contentContainerStyle={{paddingTop: insets.top}}>
       <StatusBar />
       <View style={styles.content}>
         <View style={styles.illustrationSection}>

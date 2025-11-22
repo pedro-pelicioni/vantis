@@ -8,6 +8,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Ionicons} from '@expo/vector-icons';
 import {useTheme} from '../theme/ThemeContext';
 import {useWallet} from '../contexts/WalletContext';
@@ -22,6 +23,7 @@ export const CreditDashboardScreen: React.FC = () => {
   const [creditInfo, setCreditInfo] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     loadCreditInfo();
@@ -71,7 +73,7 @@ export const CreditDashboardScreen: React.FC = () => {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }>
       <View style={styles.content}>
-        <View style={styles.header}>
+        <View style={[styles.header, {paddingTop: insets.top}]}>
           <Text style={[styles.title, {color: themeColors.textPrimary}]}>
             Credit Dashboard
           </Text>

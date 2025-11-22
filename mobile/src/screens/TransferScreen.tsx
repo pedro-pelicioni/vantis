@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Ionicons} from '@expo/vector-icons';
 import {useTheme} from '../theme/ThemeContext';
 import {useWallet} from '../contexts/WalletContext';
@@ -24,6 +25,7 @@ export const TransferScreen: React.FC = () => {
   const [amount, setAmount] = useState('');
   const [asset, setAsset] = useState('XLM');
   const [isSending, setIsSending] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const handleSend = async () => {
     if (!destination.trim()) {
@@ -82,7 +84,7 @@ export const TransferScreen: React.FC = () => {
     <ScrollView
       style={[styles.container, {backgroundColor: themeColors.bgPrimary}]}>
       <View style={styles.content}>
-        <View style={styles.header}>
+        <View style={[styles.header, {paddingTop: insets.top}]}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}>
