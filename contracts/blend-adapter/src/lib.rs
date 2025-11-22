@@ -401,8 +401,11 @@ impl BlendAdapterContract {
     // ============ Admin Functions ============
 
     /// Get admin address
-    pub fn admin(env: Env) -> Address {
-        env.storage().instance().get(&DataKey::Admin).unwrap()
+    pub fn admin(env: Env) -> Result<Address, AdapterError> {
+        env.storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(AdapterError::Unauthorized)
     }
 
     /// Get Blend pool address

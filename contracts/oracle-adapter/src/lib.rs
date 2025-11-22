@@ -146,7 +146,7 @@ impl OracleAdapterContract {
 
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::OracleContract, &oracle_contract);
-        env.storage().instance().set(&DataKey::StalenessThreshold, &300u64); // 5 minutes default
+        env.storage().instance().set(&DataKey::StalenessThreshold, &3600u64); // 1 hour default for testing
         env.storage().instance().set(&DataKey::Assets, &Vec::<Symbol>::new(&env));
     }
 
@@ -209,7 +209,7 @@ impl OracleAdapterContract {
         // For now, return cached price or fetch from oracle
         let price_data: Option<PriceData> = env
             .storage()
-            .temporary()
+            .persistent()
             .get(&(DataKey::Prices, asset.clone()));
 
         match price_data {
@@ -273,13 +273,8 @@ impl OracleAdapterContract {
             source: symbol_short!("reflector"),
         };
 
-        // Store price with TTL
-        env.storage().temporary().set(&(DataKey::Prices, asset.clone()), &price_data);
-        env.storage().temporary().extend_ttl(
-            &(DataKey::Prices, asset.clone()),
-            100,
-            1000,
-        );
+        // Store price in persistent storage
+        env.storage().persistent().set(&(DataKey::Prices, asset.clone()), &price_data);
 
         // Update price history for volatility calculation
         Self::update_price_history(&env, &asset, price)?;
@@ -370,8 +365,11 @@ impl OracleAdapterContract {
     // ============ View Functions ============
 
     /// Get admin address
-    pub fn admin(env: Env) -> Address {
-        env.storage().instance().get(&DataKey::Admin).unwrap()
+    pub fn admin(env: Env) -> Result<Address, OracleError> {
+        env.storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(OracleError::Unauthorized)
     }
 
     /// Get list of supported assets

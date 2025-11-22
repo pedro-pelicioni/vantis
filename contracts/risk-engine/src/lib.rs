@@ -650,8 +650,11 @@ impl RiskEngineContract {
     // ============ View Functions ============
 
     /// Get admin address
-    pub fn admin(env: Env) -> Address {
-        env.storage().instance().get(&DataKey::Admin).unwrap()
+    pub fn admin(env: Env) -> Result<Address, RiskError> {
+        env.storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(RiskError::Unauthorized)
     }
 
     /// Get risk parameters
@@ -688,7 +691,11 @@ impl RiskEngineContract {
     // ============ Internal Functions ============
 
     fn require_admin(env: &Env, caller: &Address) -> Result<(), RiskError> {
-        let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();
+        let admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(RiskError::Unauthorized)?;
         if *caller != admin {
             return Err(RiskError::Unauthorized);
         }

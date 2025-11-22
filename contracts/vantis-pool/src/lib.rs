@@ -716,8 +716,11 @@ impl VantisPoolContract {
     // ============ View Functions ============
 
     /// Get admin address
-    pub fn admin(env: Env) -> Address {
-        env.storage().instance().get(&DataKey::Admin).unwrap()
+    pub fn admin(env: Env) -> Result<Address, PoolError> {
+        env.storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(PoolError::Unauthorized)
     }
 
     /// Get user's collateral balances

@@ -366,8 +366,11 @@ impl BorrowLimitPolicy {
     }
 
     /// Get admin address
-    pub fn admin(env: Env) -> Address {
-        env.storage().instance().get(&DataKey::Admin).unwrap()
+    pub fn admin(env: Env) -> Result<Address, PolicyError> {
+        env.storage()
+            .instance()
+            .get(&DataKey::Admin)
+            .ok_or(PolicyError::Unauthorized)
     }
 
     // ============ Internal Functions ============
