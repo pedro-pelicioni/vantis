@@ -12,7 +12,7 @@ doctest = false
 soroban-sdk = { workspace = true }
 soroban-token-sdk = { workspace = true }
 blend-contract-sdk = { workspace = true }
-blend-adapter = { path = "../blend-adapter" }
+vantis-types = { path = "../vantis-types" }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }

@@ -7,7 +7,7 @@
 //! - Integrates with Blend's auction system for liquidations
 
 use soroban_sdk::{contracttype, Address};
-use blend_adapter::RequestType;
+use vantis_types::RequestType;
 
 /// Target health factor after liquidation (basis points)
 pub const TARGET_HEALTH_FACTOR: i128 = 10500; // 1.05
@@ -202,8 +202,8 @@ pub fn max_single_liquidation(total_debt: i128, close_factor: u32) -> i128 {
 pub fn build_blend_liquidation_request(
     collateral_asset: Address,
     collateral_amount: i128,
-) -> blend_adapter::Request {
-    blend_adapter::Request {
+) -> vantis_types::Request {
+    vantis_types::Request {
         request_type: RequestType::FillUserLiquidationAuction,
         address: collateral_asset,
         amount: collateral_amount,

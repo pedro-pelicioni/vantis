@@ -606,14 +606,14 @@ impl RiskEngineContract {
         _env: &Env,
         _blend_adapter: &Address,
         _user: &Address,
-    ) -> Result<blend_adapter::HealthFactorResult, RiskError> {
+    ) -> Result<vantis_types::HealthFactorResult, RiskError> {
         // In production, this would call:
-        // let adapter_client = blend_adapter::BlendAdapterContractClient::new(env, blend_adapter);
+        // let adapter_client = BlendAdapterContractClient::new(env, blend_adapter);
         // adapter_client.get_health_factor(user.clone())
         //     .map_err(|_| RiskError::BlendAdapterError)
 
         // Placeholder implementation
-        Ok(blend_adapter::HealthFactorResult {
+        Ok(vantis_types::HealthFactorResult {
             health_factor: 11000,
             total_collateral: 1000_0000000,
             total_liabilities: 900_0000000,

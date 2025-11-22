@@ -1,5 +1,8 @@
-//! Blend Protocol types for integration
+#![no_std]
+
+//! Vantis Protocol - Shared Types
 //!
+//! This crate contains shared types used across multiple Vantis contracts.
 //! These types mirror the Blend Protocol's data structures for interacting
 //! with Blend lending pools.
 

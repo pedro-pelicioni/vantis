@@ -5,7 +5,7 @@
 //! Integrates with Blend adapter for position queries and operations.
 
 use soroban_sdk::{contracttype, Address, Vec};
-use blend_adapter::RequestType;
+use vantis_types::RequestType;
 
 /// Stop-loss configuration for a user
 #[contracttype]
@@ -146,8 +146,8 @@ pub fn calculate_min_output(expected_output: i128, max_slippage: u32) -> i128 {
 pub fn build_blend_withdraw_request(
     collateral_asset: Address,
     amount: i128,
-) -> blend_adapter::Request {
-    blend_adapter::Request {
+) -> vantis_types::Request {
+    vantis_types::Request {
         request_type: RequestType::WithdrawCollateral,
         address: collateral_asset,
         amount,
@@ -168,8 +168,8 @@ pub fn build_blend_withdraw_request(
 pub fn build_blend_repay_request(
     usdc_asset: Address,
     amount: i128,
-) -> blend_adapter::Request {
-    blend_adapter::Request {
+) -> vantis_types::Request {
+    vantis_types::Request {
         request_type: RequestType::Repay,
         address: usdc_asset,
         amount,

@@ -16,9 +16,8 @@ use soroban_sdk::{
     contract, contracterror, contractimpl, contracttype, symbol_short, token, Address, Env, Vec,
 };
 
-mod types;
-
-pub use types::{
+// Re-export types from the shared types crate
+pub use vantis_types::{
     AuctionData, HealthFactorResult, PoolConfig, Positions, Request, RequestType, ReserveConfig,
     ReserveData,
 };

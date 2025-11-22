@@ -6,6 +6,7 @@ members = [
     "vantis-pool",
     "risk-engine",
     "blend-adapter",
+    "vantis-types",
 ]
 
 [workspace.package]
