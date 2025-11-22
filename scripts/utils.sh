@@ -78,22 +78,23 @@ invoke_contract() {
     shift 3
     local args=("$@")
 
-    log_info "Invoking ${function_name} on ${contract_id}..."
+    log_info "Invoking ${function_name} on ${contract_id}..." >&2
 
-    local cmd="stellar contract invoke \
-        --id ${contract_id} \
-        --source ${source_account} \
-        --network testnet \
-        -- ${function_name}"
+    # Build the command with proper quoting
+    local cmd="stellar contract invoke --id '${contract_id}' --source '${source_account}' --network testnet -- ${function_name}"
 
     for arg in "${args[@]}"; do
         cmd="${cmd} ${arg}"
     done
 
-    local result=$(eval "$cmd" 2>&1)
+    log_info "Command: ${cmd}" >&2
 
-    if [[ $? -ne 0 ]]; then
-        log_error "Invocation failed: ${result}"
+    local result
+    result=$(eval "$cmd" 2>&1)
+    local exit_code=$?
+
+    if [[ $exit_code -ne 0 ]]; then
+        log_error "Invocation failed: ${result}" >&2
         return 1
     fi
 
@@ -107,11 +108,7 @@ read_contract() {
     shift 2
     local args=("$@")
 
-    local cmd="stellar contract invoke \
-        --id ${contract_id} \
-        --network testnet \
-        --source admin \
-        -- ${function_name}"
+    local cmd="stellar contract invoke --id '${contract_id}' --network testnet --source 'admin' -- ${function_name}"
 
     for arg in "${args[@]}"; do
         cmd="${cmd} ${arg}"

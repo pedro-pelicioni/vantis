@@ -197,39 +197,55 @@ initialize_all_contracts() {
 
     # 1. Initialize Oracle Adapter
     log_info "Initializing Oracle Adapter..."
-    invoke_contract "$ORACLE_ADDRESS" "initialize" "admin" \
-        "--admin" "$ADMIN_ADDRESS" \
-        "--oracle_contract" "$MOCK_BLEND_POOL" \
+    stellar contract invoke \
+        --id "$ORACLE_ADDRESS" \
+        --source admin \
+        --network testnet \
+        -- initialize \
+        --admin "$ADMIN_ADDRESS" \
+        --oracle_contract "$MOCK_BLEND_POOL" \
         2>/dev/null || log_warning "Oracle may already be initialized"
 
     # 2. Initialize Blend Adapter
     log_info "Initializing Blend Adapter..."
-    invoke_contract "$BLEND_ADAPTER_ADDRESS" "initialize" "admin" \
-        "--admin" "$ADMIN_ADDRESS" \
-        "--blend_pool" "$MOCK_BLEND_POOL" \
-        "--oracle" "$ORACLE_ADDRESS" \
-        "--usdc_token" "$USDC_ADDRESS" \
+    stellar contract invoke \
+        --id "$BLEND_ADAPTER_ADDRESS" \
+        --source admin \
+        --network testnet \
+        -- initialize \
+        --admin "$ADMIN_ADDRESS" \
+        --blend_pool "$MOCK_BLEND_POOL" \
+        --oracle "$ORACLE_ADDRESS" \
+        --usdc_token "$USDC_ADDRESS" \
         2>/dev/null || log_warning "Blend Adapter may already be initialized"
 
     # 3. Initialize Vantis Pool
     log_info "Initializing Vantis Pool..."
-    invoke_contract "$POOL_ADDRESS" "initialize" "admin" \
-        "--admin" "$ADMIN_ADDRESS" \
-        "--oracle" "$ORACLE_ADDRESS" \
-        "--usdc_token" "$USDC_ADDRESS" \
-        "--blend_pool_address" "$BLEND_ADAPTER_ADDRESS" \
-        "--interest_params" "{\"base_rate\":${DEFAULT_BASE_RATE},\"slope1\":${DEFAULT_SLOPE1},\"slope2\":${DEFAULT_SLOPE2},\"optimal_utilization\":${DEFAULT_OPTIMAL_UTILIZATION}}" \
+    stellar contract invoke \
+        --id "$POOL_ADDRESS" \
+        --source admin \
+        --network testnet \
+        -- initialize \
+        --admin "$ADMIN_ADDRESS" \
+        --oracle "$ORACLE_ADDRESS" \
+        --usdc_token "$USDC_ADDRESS" \
+        --blend_pool_address "$BLEND_ADAPTER_ADDRESS" \
+        --interest_params '{"base_rate":'"${DEFAULT_BASE_RATE}"',"slope1":'"${DEFAULT_SLOPE1}"',"slope2":'"${DEFAULT_SLOPE2}"',"optimal_utilization":'"${DEFAULT_OPTIMAL_UTILIZATION}"'}' \
         2>/dev/null || log_warning "Vantis Pool may already be initialized"
 
     # 4. Initialize Risk Engine
     log_info "Initializing Risk Engine..."
-    invoke_contract "$RISK_ENGINE_ADDRESS" "initialize" "admin" \
-        "--admin" "$ADMIN_ADDRESS" \
-        "--oracle" "$ORACLE_ADDRESS" \
-        "--pool" "$POOL_ADDRESS" \
-        "--usdc_token" "$USDC_ADDRESS" \
-        "--blend_adapter" "$BLEND_ADAPTER_ADDRESS" \
-        "--params" "{\"k_factor\":${DEFAULT_K_FACTOR},\"time_horizon_days\":${DEFAULT_TIME_HORIZON_DAYS},\"stop_loss_threshold\":${DEFAULT_STOP_LOSS_THRESHOLD},\"liquidation_threshold\":${DEFAULT_LIQUIDATION_THRESHOLD},\"target_health_factor\":${DEFAULT_TARGET_HEALTH_FACTOR},\"liquidation_penalty\":${DEFAULT_LIQUIDATION_PENALTY},\"protocol_fee\":${DEFAULT_PROTOCOL_FEE},\"min_collateral_factor\":${DEFAULT_MIN_COLLATERAL_FACTOR}}" \
+    stellar contract invoke \
+        --id "$RISK_ENGINE_ADDRESS" \
+        --source admin \
+        --network testnet \
+        -- initialize \
+        --admin "$ADMIN_ADDRESS" \
+        --oracle "$ORACLE_ADDRESS" \
+        --pool "$POOL_ADDRESS" \
+        --usdc_token "$USDC_ADDRESS" \
+        --blend_adapter "$BLEND_ADAPTER_ADDRESS" \
+        --params '{"k_factor":'"${DEFAULT_K_FACTOR}"',"time_horizon_days":'"${DEFAULT_TIME_HORIZON_DAYS}"',"stop_loss_threshold":'"${DEFAULT_STOP_LOSS_THRESHOLD}"',"liquidation_threshold":'"${DEFAULT_LIQUIDATION_THRESHOLD}"',"target_health_factor":'"${DEFAULT_TARGET_HEALTH_FACTOR}"',"liquidation_penalty":'"${DEFAULT_LIQUIDATION_PENALTY}"',"protocol_fee":'"${DEFAULT_PROTOCOL_FEE}"',"min_collateral_factor":'"${DEFAULT_MIN_COLLATERAL_FACTOR}"'}' \
         2>/dev/null || log_warning "Risk Engine may already be initialized"
 
     log_success "All contracts initialized"
@@ -252,39 +268,59 @@ configure_contracts() {
 
     # Add XLM as supported asset in Oracle
     log_info "Adding XLM to Oracle..."
-    invoke_contract "$ORACLE_ADDRESS" "add_asset" "admin" \
-        "--caller" "$ADMIN_ADDRESS" \
-        "--config" "{\"symbol\":\"XLM\",\"contract\":\"${XLM_ADDRESS}\",\"decimals\":7,\"base_ltv\":${XLM_COLLATERAL_FACTOR},\"liquidation_threshold\":${XLM_LIQUIDATION_THRESHOLD}}" \
+    stellar contract invoke \
+        --id "$ORACLE_ADDRESS" \
+        --source admin \
+        --network testnet \
+        -- add_asset \
+        --caller "$ADMIN_ADDRESS" \
+        --config '{"symbol":"XLM","contract":"'"${XLM_ADDRESS}"'","decimals":7,"base_ltv":'"${XLM_COLLATERAL_FACTOR}"',"liquidation_threshold":'"${XLM_LIQUIDATION_THRESHOLD}"'}' \
         2>/dev/null || log_warning "XLM may already be added to Oracle"
 
     # Register XLM in Blend Adapter
     log_info "Registering XLM in Blend Adapter..."
-    invoke_contract "$BLEND_ADAPTER_ADDRESS" "register_asset" "admin" \
-        "--caller" "$ADMIN_ADDRESS" \
-        "--asset" "$XLM_ADDRESS" \
-        "--reserve_index" "0" \
+    stellar contract invoke \
+        --id "$BLEND_ADAPTER_ADDRESS" \
+        --source admin \
+        --network testnet \
+        -- register_asset \
+        --caller "$ADMIN_ADDRESS" \
+        --asset "$XLM_ADDRESS" \
+        --reserve_index 0 \
         2>/dev/null || log_warning "XLM may already be registered in Blend Adapter"
 
     # Add XLM as collateral asset in Pool
     log_info "Adding XLM as collateral in Pool..."
-    invoke_contract "$POOL_ADDRESS" "add_collateral_asset" "admin" \
-        "--caller" "$ADMIN_ADDRESS" \
-        "--config" "{\"token\":\"${XLM_ADDRESS}\",\"symbol\":\"XLM\",\"collateral_factor\":${XLM_COLLATERAL_FACTOR},\"liquidation_threshold\":${XLM_LIQUIDATION_THRESHOLD},\"liquidation_penalty\":${XLM_LIQUIDATION_PENALTY},\"is_active\":true}" \
+    stellar contract invoke \
+        --id "$POOL_ADDRESS" \
+        --source admin \
+        --network testnet \
+        -- add_collateral_asset \
+        --caller "$ADMIN_ADDRESS" \
+        --config '{"token":"'"${XLM_ADDRESS}"'","symbol":"XLM","collateral_factor":'"${XLM_COLLATERAL_FACTOR}"',"liquidation_threshold":'"${XLM_LIQUIDATION_THRESHOLD}"',"liquidation_penalty":'"${XLM_LIQUIDATION_PENALTY}"',"is_active":true}' \
         2>/dev/null || log_warning "XLM may already be added as collateral"
 
     # Link Risk Engine to Pool
     log_info "Linking Risk Engine to Pool..."
-    invoke_contract "$POOL_ADDRESS" "set_risk_engine" "admin" \
-        "--caller" "$ADMIN_ADDRESS" \
-        "--risk_engine" "$RISK_ENGINE_ADDRESS" \
+    stellar contract invoke \
+        --id "$POOL_ADDRESS" \
+        --source admin \
+        --network testnet \
+        -- set_risk_engine \
+        --caller "$ADMIN_ADDRESS" \
+        --risk_engine "$RISK_ENGINE_ADDRESS" \
         2>/dev/null || log_warning "Risk Engine may already be linked"
 
     # Set initial XLM price in Oracle
     log_info "Setting initial XLM price..."
-    invoke_contract "$ORACLE_ADDRESS" "update_price" "admin" \
-        "--caller" "$ADMIN_ADDRESS" \
-        "--asset" "XLM" \
-        "--price" "$TEST_PRICE_XLM" \
+    stellar contract invoke \
+        --id "$ORACLE_ADDRESS" \
+        --source admin \
+        --network testnet \
+        -- update_price \
+        --caller "$ADMIN_ADDRESS" \
+        --asset XLM \
+        --price "$TEST_PRICE_XLM" \
         2>/dev/null || log_warning "Price update may have failed"
 
     log_success "Contracts configured"

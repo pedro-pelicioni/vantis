@@ -130,34 +130,37 @@ check_command() {
 }
 
 # Generate a new keypair and fund it via friendbot
+# Returns the public key on stdout (all log messages go to stderr)
 create_funded_account() {
     local name=$1
     local keys_file="${DEPLOYMENTS_DIR}/${name}_keys.json"
 
     if [[ -f "$keys_file" ]]; then
-        log_info "Using existing keypair for ${name}"
-        cat "$keys_file"
+        log_info "Using existing keypair for ${name}" >&2
+        # Return just the public key
+        jq -r '.public_key' "$keys_file"
         return
     fi
 
-    log_info "Creating new keypair for ${name}..."
-    local keypair=$(stellar keys generate "${name}" --network testnet 2>/dev/null || true)
+    log_info "Creating new keypair for ${name}..." >&2
+    stellar keys generate "${name}" --network testnet 2>/dev/null || true
 
     # Get the public key
     local public_key=$(stellar keys address "${name}" 2>/dev/null)
 
     if [[ -z "$public_key" ]]; then
-        log_error "Failed to generate keypair for ${name}"
+        log_error "Failed to generate keypair for ${name}" >&2
         exit 1
     fi
 
-    log_info "Funding account via friendbot..."
+    log_info "Funding account via friendbot..." >&2
     curl -s "${FRIENDBOT_URL}?addr=${public_key}" > /dev/null
 
     # Save keys info
     echo "{\"name\": \"${name}\", \"public_key\": \"${public_key}\"}" > "$keys_file"
 
-    log_success "Account ${name} created and funded: ${public_key}"
+    log_success "Account ${name} created and funded: ${public_key}" >&2
+    # Return just the public key
     echo "$public_key"
 }
 
