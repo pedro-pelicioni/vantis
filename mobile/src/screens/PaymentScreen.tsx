@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Ionicons} from '@expo/vector-icons';
 import {useTheme} from '../theme/ThemeContext';
 import {useWallet} from '../contexts/WalletContext';
@@ -28,6 +29,7 @@ export const PaymentScreen: React.FC = () => {
   const {account} = useWallet();
   const [amount, setAmount] = useState(params.amount || '');
   const [merchant, setMerchant] = useState(params.merchant || '');
+  const insets = useSafeAreaInsets();
   const [installments, setInstallments] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -76,7 +78,7 @@ export const PaymentScreen: React.FC = () => {
     <ScrollView
       style={[styles.container, {backgroundColor: themeColors.bgPrimary}]}>
       <View style={styles.content}>
-        <View style={styles.header}>
+        <View style={[styles.header, {paddingTop: insets.top}]}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}>

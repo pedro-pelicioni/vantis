@@ -8,6 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Ionicons} from '@expo/vector-icons';
 import {useTheme} from '../theme/ThemeContext';
 import {useWallet} from '../contexts/WalletContext';
@@ -19,6 +20,7 @@ export const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
   const {colors: themeColors} = useTheme();
   const {account, isConnected, disconnectWallet} = useWallet();
+  const insets = useSafeAreaInsets();
 
   const openSupport = () => {
     Alert.alert('Support', 'Support information');
@@ -51,6 +53,7 @@ export const SettingsScreen: React.FC = () => {
           styles.header,
           {
             borderBottomColor: themeColors.borderColor,
+            paddingTop: insets.top,
           },
         ]}>
         <TouchableOpacity

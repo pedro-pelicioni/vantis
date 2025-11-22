@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -6,24 +6,73 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '../theme/ThemeContext';
+import {useWallet} from '../contexts/WalletContext';
 import {StatusBar} from '../components/StatusBar';
+import {passkeyService} from '../services/passkeyService';
+import {walletService} from '../services/walletService';
 import {spacing, borderRadius, colors} from '../theme/colors';
 
 export const OnboardingScreen: React.FC = () => {
   const navigation = useNavigation();
   const {colors: themeColors} = useTheme();
+  const insets = useSafeAreaInsets();
+  const {connectWallet} = useWallet();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const createAccount = () => {
-    // Navigate to wallet connection after onboarding
-    navigation.navigate('WalletConnect' as never);
+  const createAccount = async () => {
+    try {
+      setIsLoading(true);
+
+      // Check if passkeys are supported
+      const supported = await passkeyService.isSupported();
+      if (!supported) {
+        Alert.alert(
+          'Passkeys Not Supported',
+          'Your device does not support passkeys. Please enable biometric authentication in your device settings.',
+        );
+        setIsLoading(false);
+        return;
+      }
+
+      // Register a new passkey
+      const passkeyAccount = await passkeyService.register('user');
+
+      // Generate a wallet and link it to the passkey
+      const {publicKey} = await walletService.generateWallet();
+      
+      // Connect wallet with the passkey account
+      const walletAccount = await walletService.connectWallet(publicKey);
+      
+      // Link passkey to wallet
+      await passkeyService.linkContractAddress(
+        passkeyAccount.credentialId,
+        publicKey,
+      );
+
+      // Connect to wallet context
+      await connectWallet(publicKey);
+
+      // Navigate to home
+      navigation.navigate('Home' as never);
+    } catch (error: any) {
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to create account with passkey',
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <ScrollView
-      style={[styles.container, {backgroundColor: themeColors.bgPrimary}]}>
+      style={[styles.container, {backgroundColor: themeColors.bgPrimary}]}
+      contentContainerStyle={{paddingTop: insets.top}}>
       <StatusBar />
       <View style={styles.content}>
         <View style={styles.illustrationSection}>
@@ -76,9 +125,10 @@ export const OnboardingScreen: React.FC = () => {
                 color: themeColors.textPrimary,
               },
             ]}>
-            To keep your account secure, Vantis App uses passkeys, a
-            passwordless authentication method protected by your device biometric
-            verification.
+            Vantis uses passkeys powered by WebAuthn and secp256r1 cryptography.
+            Your account is secured by your device's biometric authentication
+            (fingerprint or face ID). No passwords, no seed phrases - just two taps
+            to create your self-custodial smart wallet.
           </Text>
 
           <View style={styles.terms}>
@@ -108,20 +158,28 @@ export const OnboardingScreen: React.FC = () => {
               styles.createBtn,
               {
                 backgroundColor: colors.accentTeal,
+                opacity: isLoading ? 0.6 : 1,
               },
             ]}
             onPress={createAccount}
-            activeOpacity={0.8}>
-            <Text
-              style={[
-                styles.btnText,
-                {
-                  color: themeColors.bgPrimary,
-                },
-              ]}>
-              Set passkey and create account
-            </Text>
-            <Text style={styles.btnIcon}>🔑</Text>
+            activeOpacity={0.8}
+            disabled={isLoading}>
+            {isLoading ? (
+              <ActivityIndicator color={themeColors.bgPrimary} />
+            ) : (
+              <>
+                <Text
+                  style={[
+                    styles.btnText,
+                    {
+                      color: themeColors.bgPrimary,
+                    },
+                  ]}>
+                  Set passkey and create account
+                </Text>
+                <Text style={styles.btnIcon}>🔑</Text>
+              </>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity>

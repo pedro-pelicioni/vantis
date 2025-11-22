@@ -1,6 +1,7 @@
 import React from 'react';
 import {View, Text, TouchableOpacity, StyleSheet, ScrollView} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Ionicons} from '@expo/vector-icons';
 import {useTheme} from '../theme/ThemeContext';
 import {useWallet} from '../contexts/WalletContext';
@@ -11,25 +12,26 @@ export const PayModeScreen: React.FC = () => {
   const navigation = useNavigation();
   const {colors: themeColors} = useTheme();
   const {isConnected} = useWallet();
+  const insets = useSafeAreaInsets();
 
   const paymentOptions = [
     {
-      title: 'Make Payment',
-      subtitle: 'Pay with installments',
-      icon: 'card',
-      onPress: () => navigation.navigate('Payment' as never),
+      title: 'Send',
+      subtitle: 'Transfer to another wallet',
+      icon: 'send',
+      onPress: () => navigation.navigate('Transfer' as never),
+    },
+    {
+      title: 'Receive',
+      subtitle: 'Show your wallet address',
+      icon: 'download',
+      onPress: () => navigation.navigate('Receive' as never),
     },
     {
       title: 'Credit Dashboard',
       subtitle: 'View credit and collateral',
       icon: 'trending-up',
       onPress: () => navigation.navigate('CreditDashboard' as never),
-    },
-    {
-      title: 'Send Payment',
-      subtitle: 'Transfer to another wallet',
-      icon: 'send',
-      onPress: () => navigation.navigate('Transfer' as never),
     },
   ];
 
@@ -55,7 +57,9 @@ export const PayModeScreen: React.FC = () => {
   }
 
   return (
-    <ScrollView style={[styles.container, {backgroundColor: themeColors.bgPrimary}]}>
+    <ScrollView 
+      style={[styles.container, {backgroundColor: themeColors.bgPrimary}]}
+      contentContainerStyle={{paddingTop: insets.top, paddingBottom: insets.bottom + 80}}>
       <StatusBar />
       <View style={styles.content}>
         <Text style={[styles.title, {color: themeColors.textPrimary}]}>
