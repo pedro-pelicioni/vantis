@@ -4,8 +4,10 @@
 //! - Only liquidates the minimum amount to restore health
 //! - Targets a specific health factor (1.05) after liquidation
 //! - Uses Dutch auction mechanism for efficient price discovery
+//! - Integrates with Blend's auction system for liquidations
 
 use soroban_sdk::{contracttype, Address};
+use blend_adapter::RequestType;
 
 /// Target health factor after liquidation (basis points)
 pub const TARGET_HEALTH_FACTOR: i128 = 10500; // 1.05
@@ -184,6 +186,28 @@ pub fn is_liquidatable(health_factor: i128, liquidation_threshold: i128) -> bool
 /// Maximum debt that can be repaid in single liquidation
 pub fn max_single_liquidation(total_debt: i128, close_factor: u32) -> i128 {
     total_debt * close_factor as i128 / 10000
+}
+
+/// Build a Blend liquidation auction request
+///
+/// This creates a FillUserLiquidationAuction request for the Blend adapter
+/// to execute liquidation through Blend's auction system.
+///
+/// # Arguments
+/// * `collateral_asset` - The collateral asset to seize
+/// * `collateral_amount` - Amount of collateral to seize
+///
+/// # Returns
+/// A Request configured for Blend's liquidation auction
+pub fn build_blend_liquidation_request(
+    collateral_asset: Address,
+    collateral_amount: i128,
+) -> blend_adapter::Request {
+    blend_adapter::Request {
+        request_type: RequestType::FillUserLiquidationAuction,
+        address: collateral_asset,
+        amount: collateral_amount,
+    }
 }
 
 #[cfg(test)]

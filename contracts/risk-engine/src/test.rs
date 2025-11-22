@@ -15,6 +15,7 @@ fn test_initialize() {
     let oracle = Address::generate(&env);
     let pool = Address::generate(&env);
     let usdc = Address::generate(&env);
+    let blend_adapter = Address::generate(&env);
 
     let params = RiskParameters {
         k_factor: 100,
@@ -27,13 +28,17 @@ fn test_initialize() {
         min_collateral_factor: 3000,
     };
 
-    client.initialize(&admin, &oracle, &pool, &usdc, &params);
+    client.initialize(&admin, &oracle, &pool, &usdc, &blend_adapter, &params);
 
     assert_eq!(client.admin(), admin);
 
     let stored_params = client.get_params();
     assert_eq!(stored_params.k_factor, 100);
     assert_eq!(stored_params.liquidation_penalty, 500);
+
+    // Verify blend adapter is stored
+    let stored_adapter = client.get_blend_adapter();
+    assert_eq!(stored_adapter, blend_adapter);
 }
 
 #[test]
@@ -48,9 +53,10 @@ fn test_update_params() {
     let oracle = Address::generate(&env);
     let pool = Address::generate(&env);
     let usdc = Address::generate(&env);
+    let blend_adapter = Address::generate(&env);
 
     let initial_params = RiskParameters::default();
-    client.initialize(&admin, &oracle, &pool, &usdc, &initial_params);
+    client.initialize(&admin, &oracle, &pool, &usdc, &blend_adapter, &initial_params);
 
     // Update params
     let new_params = RiskParameters {
@@ -78,10 +84,11 @@ fn test_enable_disable_stop_loss() {
     let oracle = Address::generate(&env);
     let pool = Address::generate(&env);
     let usdc = Address::generate(&env);
+    let blend_adapter = Address::generate(&env);
     let user = Address::generate(&env);
 
     let params = RiskParameters::default();
-    client.initialize(&admin, &oracle, &pool, &usdc, &params);
+    client.initialize(&admin, &oracle, &pool, &usdc, &blend_adapter, &params);
 
     // Enable stop-loss
     let config = UserStopLossConfig {
@@ -117,10 +124,11 @@ fn test_add_liquidator() {
     let oracle = Address::generate(&env);
     let pool = Address::generate(&env);
     let usdc = Address::generate(&env);
+    let blend_adapter = Address::generate(&env);
     let liquidator = Address::generate(&env);
 
     let params = RiskParameters::default();
-    client.initialize(&admin, &oracle, &pool, &usdc, &params);
+    client.initialize(&admin, &oracle, &pool, &usdc, &blend_adapter, &params);
 
     assert!(!client.is_liquidator(&liquidator));
 
@@ -141,6 +149,7 @@ fn test_calculate_safe_borrow() {
     let oracle = Address::generate(&env);
     let pool = Address::generate(&env);
     let usdc = Address::generate(&env);
+    let blend_adapter = Address::generate(&env);
 
     let params = RiskParameters {
         k_factor: 100,
@@ -148,7 +157,7 @@ fn test_calculate_safe_borrow() {
         min_collateral_factor: 3000,
         ..RiskParameters::default()
     };
-    client.initialize(&admin, &oracle, &pool, &usdc, &params);
+    client.initialize(&admin, &oracle, &pool, &usdc, &blend_adapter, &params);
 
     // Calculate safe borrow
     let collateral_value = 1000_0000000i128; // 1000 USD
@@ -178,10 +187,11 @@ fn test_check_position_health() {
     let oracle = Address::generate(&env);
     let pool = Address::generate(&env);
     let usdc = Address::generate(&env);
+    let blend_adapter = Address::generate(&env);
     let user = Address::generate(&env);
 
     let params = RiskParameters::default();
-    client.initialize(&admin, &oracle, &pool, &usdc, &params);
+    client.initialize(&admin, &oracle, &pool, &usdc, &blend_adapter, &params);
 
     // Check position (uses placeholder that returns healthy)
     let (health, status) = client.check_position_health(&user);
@@ -189,6 +199,35 @@ fn test_check_position_health() {
     // Placeholder returns 11000 (healthy)
     assert_eq!(health, 11000);
     assert_eq!(status, symbol_short!("healthy"));
+}
+
+#[test]
+fn test_blend_adapter_integration() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register(RiskEngineContract, ());
+    let client = RiskEngineContractClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let oracle = Address::generate(&env);
+    let pool = Address::generate(&env);
+    let usdc = Address::generate(&env);
+    let blend_adapter = Address::generate(&env);
+
+    let params = RiskParameters::default();
+    client.initialize(&admin, &oracle, &pool, &usdc, &blend_adapter, &params);
+
+    // Verify blend adapter is stored
+    let stored_adapter = client.get_blend_adapter();
+    assert_eq!(stored_adapter, blend_adapter);
+
+    // Update blend adapter
+    let new_blend_adapter = Address::generate(&env);
+    client.set_blend_adapter(&admin, &new_blend_adapter);
+
+    let updated_adapter = client.get_blend_adapter();
+    assert_eq!(updated_adapter, new_blend_adapter);
 }
 
 // Test volatility module

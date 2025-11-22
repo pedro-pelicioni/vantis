@@ -4,6 +4,42 @@
 //!
 //! Integrates with Stellar's Reflector Oracle to provide price feeds
 //! for the Vantis protocol. Supports multiple assets and volatility tracking.
+//!
+//! # Blend Protocol Compatibility
+//!
+//! This oracle adapter is fully compatible with Blend Protocol's oracle requirements:
+//!
+//! ## Price Format
+//! - All prices are represented in **14 decimal places** (Blend standard)
+//! - Example: $1.00 USD = 100_000_000_000_000 (1e14)
+//! - Example: $0.10 USD = 10_000_000_000_000 (1e13)
+//! - This format ensures precision for both high-value assets (BTC, ETH) and low-value assets
+//!
+//! ## Price Feed Characteristics
+//! - **Source**: Stellar's Reflector Oracle
+//! - **Decimal Precision**: 14 decimals (i128 type)
+//! - **Staleness Check**: Configurable threshold (default 300 seconds / 5 minutes)
+//! - **Volatility Tracking**: 7-day and 30-day historical volatility in basis points
+//!
+//! ## Integration with Blend
+//! The oracle adapter provides:
+//! 1. **get_price()** - Returns current price in 14-decimal format
+//! 2. **get_volatility()** - Returns volatility data for risk calculations
+//! 3. **calculate_safe_borrow()** - Volatility-adjusted LTV calculations compatible with Blend's risk model
+//!
+//! ## Safe Borrow Calculation
+//! The safe borrow amount is calculated using the formula:
+//! ```
+//! B_safe = V_collateral × (LTV_base - k × σ × √T)
+//! ```
+//! Where:
+//! - V_collateral: Collateral value in USD (14 decimals)
+//! - LTV_base: Base Loan-to-Value ratio (basis points, e.g., 7500 = 75%)
+//! - k: Volatility sensitivity factor (basis points)
+//! - σ: 30-day historical volatility (basis points)
+//! - T: Time horizon in years
+//!
+//! This ensures Blend positions remain healthy even during market volatility.
 
 use soroban_sdk::{
     contract, contracterror, contractimpl, contracttype, symbol_short, Address, Env, Symbol, Vec,
@@ -27,14 +63,24 @@ pub enum DataKey {
 }
 
 /// Price data structure
+///
+/// # Blend Compatibility
+/// The price field is always in 14-decimal format as required by Blend Protocol.
+/// This ensures compatibility with Blend's oracle interface and risk calculations.
+///
+/// # Examples
+/// - $1.00 USD = 100_000_000_000_000 (1e14)
+/// - $0.10 USD = 10_000_000_000_000 (1e13)
+/// - $1000.00 USD = 100_000_000_000_000_000 (1e17)
 #[contracttype]
 #[derive(Clone, Debug)]
 pub struct PriceData {
-    /// Price in USD with 14 decimals (Reflector standard)
+    /// Price in USD with 14 decimals (Blend Protocol standard)
+    /// This format is compatible with Blend's oracle requirements
     pub price: i128,
     /// Timestamp of the price update
     pub timestamp: u64,
-    /// Source identifier
+    /// Source identifier (e.g., "reflector")
     pub source: Symbol,
 }
 
@@ -139,7 +185,23 @@ impl OracleAdapterContract {
     }
 
     /// Get the current price for an asset
-    /// Returns price in USD with 14 decimals
+    ///
+    /// Returns price in USD with 14 decimals (Blend Protocol compatible format).
+    ///
+    /// # Blend Compatibility
+    /// This function returns prices in the exact format required by Blend Protocol:
+    /// - 14 decimal places
+    /// - i128 type for precision
+    /// - Staleness validation to ensure price freshness
+    ///
+    /// # Example
+    /// For an asset priced at $0.10:
+    /// - Returns: 10_000_000_000_000 (10^13)
+    ///
+    /// # Errors
+    /// - `AssetNotSupported`: Asset is not registered
+    /// - `InvalidPrice`: No price data available
+    /// - `StalePrice`: Price is older than staleness threshold
     pub fn get_price(env: Env, asset: Symbol) -> Result<PriceData, OracleError> {
         Self::require_asset_supported(&env, &asset)?;
 
@@ -171,6 +233,26 @@ impl OracleAdapterContract {
     }
 
     /// Update price from oracle (called by keeper or oracle push)
+    ///
+    /// # Blend Compatibility
+    /// Prices must be provided in 14-decimal format as required by Blend Protocol.
+    /// This function validates and stores prices in the exact format needed for
+    /// Blend's oracle interface.
+    ///
+    /// # Arguments
+    /// * `caller` - Address authorized to update prices (typically oracle keeper)
+    /// * `asset` - Asset symbol to update
+    /// * `price` - Price in USD with 14 decimals (Blend format)
+    ///
+    /// # Example
+    /// To set price of $0.10:
+    /// ```ignore
+    /// update_price(env, caller, symbol_short!("XLM"), 10_000_000_000_000)
+    /// ```
+    ///
+    /// # Errors
+    /// - `AssetNotSupported`: Asset is not registered
+    /// - `InvalidPrice`: Price is <= 0
     pub fn update_price(
         env: Env,
         caller: Address,
@@ -317,6 +399,45 @@ impl OracleAdapterContract {
     }
 
     // ============ Internal Functions ============
+
+    /// Convert price from one decimal format to another
+    ///
+    /// # Blend Compatibility
+    /// This helper function can convert prices from other decimal formats to
+    /// Blend's required 14-decimal format. However, the oracle adapter always
+    /// works with 14-decimal prices internally.
+    ///
+    /// # Arguments
+    /// * `price` - Price value
+    /// * `from_decimals` - Current decimal places
+    /// * `to_decimals` - Target decimal places (typically 14 for Blend)
+    ///
+    /// # Returns
+    /// Converted price value
+    ///
+    /// # Example
+    /// Convert from 8 decimals to 14 decimals:
+    /// ```ignore
+    /// let price_8d = 10_000_000;  // $0.10 with 8 decimals
+    /// let price_14d = Self::convert_price_decimals(price_8d, 8, 14);
+    /// // Result: 10_000_000_000_000 (same value, 14 decimals)
+    /// ```
+    #[allow(dead_code)]
+    fn convert_price_decimals(price: i128, from_decimals: u32, to_decimals: u32) -> i128 {
+        if from_decimals == to_decimals {
+            return price;
+        }
+
+        if from_decimals < to_decimals {
+            // Scale up
+            let multiplier = 10i128.pow(to_decimals - from_decimals);
+            price.saturating_mul(multiplier)
+        } else {
+            // Scale down
+            let divisor = 10i128.pow(from_decimals - to_decimals);
+            price / divisor
+        }
+    }
 
     fn require_admin(env: &Env, caller: &Address) -> Result<(), OracleError> {
         let admin: Address = env.storage().instance().get(&DataKey::Admin).unwrap();

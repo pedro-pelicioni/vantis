@@ -18,6 +18,7 @@ fn test_initialize() {
 
     let admin = Address::generate(&env);
     let oracle = Address::generate(&env);
+    let blend_pool = Address::generate(&env);
     let usdc_admin = Address::generate(&env);
     let usdc = create_token_contract(&env, &usdc_admin);
 
@@ -28,7 +29,7 @@ fn test_initialize() {
         optimal_utilization: 8000, // 80%
     };
 
-    client.initialize(&admin, &oracle, &usdc.address, &interest_params);
+    client.initialize(&admin, &oracle, &usdc.address, &blend_pool, &interest_params);
 
     assert_eq!(client.admin(), admin);
     assert_eq!(client.get_reserves(), 0);
@@ -45,6 +46,7 @@ fn test_add_collateral_asset() {
 
     let admin = Address::generate(&env);
     let oracle = Address::generate(&env);
+    let blend_pool = Address::generate(&env);
     let usdc_admin = Address::generate(&env);
     let usdc = create_token_contract(&env, &usdc_admin);
     let xlm_admin = Address::generate(&env);
@@ -57,7 +59,7 @@ fn test_add_collateral_asset() {
         optimal_utilization: 8000,
     };
 
-    client.initialize(&admin, &oracle, &usdc.address, &interest_params);
+    client.initialize(&admin, &oracle, &usdc.address, &blend_pool, &interest_params);
 
     let config = CollateralConfig {
         token: xlm.address.clone(),
@@ -83,6 +85,7 @@ fn test_deposit_and_withdraw() {
 
     let admin = Address::generate(&env);
     let oracle = Address::generate(&env);
+    let blend_pool = Address::generate(&env);
     let user = Address::generate(&env);
 
     // Create tokens
@@ -98,7 +101,7 @@ fn test_deposit_and_withdraw() {
         optimal_utilization: 8000,
     };
 
-    client.initialize(&admin, &oracle, &usdc.address, &interest_params);
+    client.initialize(&admin, &oracle, &usdc.address, &blend_pool, &interest_params);
 
     // Add XLM as collateral
     let config = CollateralConfig {
@@ -138,6 +141,7 @@ fn test_supply_and_borrow() {
 
     let admin = Address::generate(&env);
     let oracle = Address::generate(&env);
+    let blend_pool = Address::generate(&env);
     let user = Address::generate(&env);
     let supplier = Address::generate(&env);
 
@@ -154,7 +158,7 @@ fn test_supply_and_borrow() {
         optimal_utilization: 8000,
     };
 
-    client.initialize(&admin, &oracle, &usdc.address, &interest_params);
+    client.initialize(&admin, &oracle, &usdc.address, &blend_pool, &interest_params);
 
     // Add XLM as collateral
     let config = CollateralConfig {
@@ -202,6 +206,7 @@ fn test_repay() {
 
     let admin = Address::generate(&env);
     let oracle = Address::generate(&env);
+    let blend_pool = Address::generate(&env);
     let user = Address::generate(&env);
     let supplier = Address::generate(&env);
 
@@ -218,7 +223,7 @@ fn test_repay() {
         optimal_utilization: 8000,
     };
 
-    client.initialize(&admin, &oracle, &usdc.address, &interest_params);
+    client.initialize(&admin, &oracle, &usdc.address, &blend_pool, &interest_params);
 
     let config = CollateralConfig {
         token: xlm.address.clone(),
@@ -266,6 +271,7 @@ fn test_health_factor() {
 
     let admin = Address::generate(&env);
     let oracle = Address::generate(&env);
+    let blend_pool = Address::generate(&env);
     let user = Address::generate(&env);
     let supplier = Address::generate(&env);
 
@@ -282,7 +288,7 @@ fn test_health_factor() {
         optimal_utilization: 8000,
     };
 
-    client.initialize(&admin, &oracle, &usdc.address, &interest_params);
+    client.initialize(&admin, &oracle, &usdc.address, &blend_pool, &interest_params);
 
     let config = CollateralConfig {
         token: xlm.address.clone(),

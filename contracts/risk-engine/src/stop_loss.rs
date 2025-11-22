@@ -2,8 +2,10 @@
 //!
 //! Allows users to opt-in to automatic collateral swaps when their
 //! position approaches liquidation, avoiding the liquidation penalty.
+//! Integrates with Blend adapter for position queries and operations.
 
 use soroban_sdk::{contracttype, Address, Vec};
+use blend_adapter::RequestType;
 
 /// Stop-loss configuration for a user
 #[contracttype]
@@ -128,6 +130,50 @@ pub fn should_trigger_stop_loss(
 /// Minimum acceptable output after slippage
 pub fn calculate_min_output(expected_output: i128, max_slippage: u32) -> i128 {
     expected_output * (10000 - max_slippage as i128) / 10000
+}
+
+/// Build a Blend withdraw collateral request for stop-loss
+///
+/// This creates a WithdrawCollateral request to be submitted to Blend
+/// as part of the stop-loss mechanism.
+///
+/// # Arguments
+/// * `collateral_asset` - The collateral asset to withdraw
+/// * `amount` - Amount to withdraw
+///
+/// # Returns
+/// A Request configured for Blend's withdraw operation
+pub fn build_blend_withdraw_request(
+    collateral_asset: Address,
+    amount: i128,
+) -> blend_adapter::Request {
+    blend_adapter::Request {
+        request_type: RequestType::WithdrawCollateral,
+        address: collateral_asset,
+        amount,
+    }
+}
+
+/// Build a Blend repay request for stop-loss
+///
+/// This creates a Repay request to be submitted to Blend
+/// to reduce debt as part of the stop-loss mechanism.
+///
+/// # Arguments
+/// * `usdc_asset` - The USDC token address
+/// * `amount` - Amount to repay
+///
+/// # Returns
+/// A Request configured for Blend's repay operation
+pub fn build_blend_repay_request(
+    usdc_asset: Address,
+    amount: i128,
+) -> blend_adapter::Request {
+    blend_adapter::Request {
+        request_type: RequestType::Repay,
+        address: usdc_asset,
+        amount,
+    }
 }
 
 #[cfg(test)]

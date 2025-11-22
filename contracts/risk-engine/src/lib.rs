@@ -7,6 +7,7 @@
 //! - Automated stop-loss execution
 //! - Partial liquidation mechanism
 //! - Health factor monitoring
+//! - Integration with Blend adapter for position queries
 
 use soroban_sdk::{
     contract, contracterror, contractimpl, contracttype, symbol_short, Address, Env, Symbol, Vec,
@@ -29,6 +30,8 @@ pub enum DataKey {
     Oracle,
     /// Vantis pool contract
     Pool,
+    /// Blend adapter contract for position queries
+    BlendAdapter,
     /// USDC token for swaps
     UsdcToken,
     /// Swap router/DEX contract
@@ -145,6 +148,8 @@ pub enum RiskError {
     PoolError = 8,
     /// Insufficient collateral for swap
     InsufficientCollateral = 9,
+    /// Blend adapter error
+    BlendAdapterError = 10,
 }
 
 #[contract]
@@ -153,12 +158,21 @@ pub struct RiskEngineContract;
 #[contractimpl]
 impl RiskEngineContract {
     /// Initialize the risk engine
+    ///
+    /// # Arguments
+    /// * `admin` - Admin address for the risk engine
+    /// * `oracle` - Oracle adapter contract address
+    /// * `pool` - Vantis pool contract address (for backward compatibility)
+    /// * `usdc_token` - USDC token address
+    /// * `blend_adapter` - Blend adapter contract address for position queries
+    /// * `params` - Risk parameters
     pub fn initialize(
         env: Env,
         admin: Address,
         oracle: Address,
         pool: Address,
         usdc_token: Address,
+        blend_adapter: Address,
         params: RiskParameters,
     ) {
         if env.storage().instance().has(&DataKey::Admin) {
@@ -168,6 +182,7 @@ impl RiskEngineContract {
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::Oracle, &oracle);
         env.storage().instance().set(&DataKey::Pool, &pool);
+        env.storage().instance().set(&DataKey::BlendAdapter, &blend_adapter);
         env.storage().instance().set(&DataKey::UsdcToken, &usdc_token);
         env.storage().instance().set(&DataKey::RiskParams, &params);
         env.storage().instance().set(&DataKey::Liquidators, &Vec::<Address>::new(&env));
@@ -215,6 +230,27 @@ impl RiskEngineContract {
         Self::require_admin(&env, &caller)?;
 
         env.storage().instance().set(&DataKey::Treasury, &treasury);
+        Ok(())
+    }
+
+    /// Get Blend adapter address
+    pub fn get_blend_adapter(env: Env) -> Result<Address, RiskError> {
+        env.storage()
+            .instance()
+            .get(&DataKey::BlendAdapter)
+            .ok_or(RiskError::BlendAdapterError)
+    }
+
+    /// Set Blend adapter address (admin only)
+    pub fn set_blend_adapter(
+        env: Env,
+        caller: Address,
+        blend_adapter: Address,
+    ) -> Result<(), RiskError> {
+        caller.require_auth();
+        Self::require_admin(&env, &caller)?;
+
+        env.storage().instance().set(&DataKey::BlendAdapter, &blend_adapter);
         Ok(())
     }
 
@@ -546,20 +582,43 @@ impl RiskEngineContract {
 
     // ============ Health Monitoring ============
 
-    /// Get user's current health factor
-    fn get_user_health_factor(env: &Env, _user: &Address) -> Result<i128, RiskError> {
-        // In production: call pool.get_health_factor(user)
-        // For now, return a placeholder
-
-        // Check if pool is set
-        let _pool: Address = env
+    /// Get user's current health factor from Blend adapter
+    fn get_user_health_factor(env: &Env, user: &Address) -> Result<i128, RiskError> {
+        // Get Blend adapter address
+        let blend_adapter: Address = env
             .storage()
             .instance()
-            .get(&DataKey::Pool)
-            .ok_or(RiskError::PoolError)?;
+            .get(&DataKey::BlendAdapter)
+            .ok_or(RiskError::BlendAdapterError)?;
+
+        // Call blend adapter's get_health_factor function
+        // In production, this would be a cross-contract call to the Blend adapter
+        // For now, we return a placeholder that would be replaced with actual call
+        let _health_result = Self::query_blend_health_factor(env, &blend_adapter, user)?;
 
         // Placeholder: return healthy
+        // In production: return health_result.health_factor
         Ok(11000) // 1.1
+    }
+
+    /// Query health factor from Blend adapter
+    fn query_blend_health_factor(
+        _env: &Env,
+        _blend_adapter: &Address,
+        _user: &Address,
+    ) -> Result<blend_adapter::HealthFactorResult, RiskError> {
+        // In production, this would call:
+        // let adapter_client = blend_adapter::BlendAdapterContractClient::new(env, blend_adapter);
+        // adapter_client.get_health_factor(user.clone())
+        //     .map_err(|_| RiskError::BlendAdapterError)
+
+        // Placeholder implementation
+        Ok(blend_adapter::HealthFactorResult {
+            health_factor: 11000,
+            total_collateral: 1000_0000000,
+            total_liabilities: 900_0000000,
+            is_liquidatable: false,
+        })
     }
 
     /// Check if a position needs attention

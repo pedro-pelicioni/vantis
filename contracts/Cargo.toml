@@ -5,6 +5,7 @@ members = [
     "oracle-adapter",
     "vantis-pool",
     "risk-engine",
+    "blend-adapter",
 ]
 
 [workspace.package]
@@ -17,6 +18,7 @@ repository = "https://github.com/vantis-protocol/vantis-contracts"
 soroban-sdk = "22.0.0"
 soroban-token-sdk = "22.0.0"
 stellar-accounts = "0.5.0"
+blend-contract-sdk = "1.22.0"
 
 [profile.release]
 opt-level = "z"

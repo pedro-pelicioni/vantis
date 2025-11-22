@@ -1,16 +1,17 @@
 [package]
-name = "risk-engine"
+name = "blend-adapter"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 doctest = false
 
 [dependencies]
 soroban-sdk = { workspace = true }
-blend-adapter = { path = "../blend-adapter" }
+soroban-token-sdk = { workspace = true }
+blend-contract-sdk = { workspace = true }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
