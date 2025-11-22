@@ -14,6 +14,42 @@ const {width} = Dimensions.get('window');
 const CARD_WIDTH = width - spacing.xl * 2;
 const CARD_HEIGHT = CARD_WIDTH * 0.63; // Standard credit card ratio
 
+// Helper function to mask card number: shows only first 4 and last 4 digits
+// This function MUST always return a masked format - NEVER the full number
+const maskCardNumber = (cardNumber: string | undefined): string => {
+  // If no card number provided, return masked placeholder
+  if (!cardNumber) {
+    return '**** **** **** ****';
+  }
+  
+  // Trim whitespace
+  const trimmed = cardNumber.trim();
+  
+  // If already masked or empty, return masked placeholder
+  if (trimmed === '' || trimmed === '**** **** **** ****' || trimmed.includes('****')) {
+    return '**** **** **** ****';
+  }
+  
+  // Remove ALL spaces, dashes, and any non-digit characters
+  // This ensures we only work with digits
+  const digits = trimmed.replace(/[\s\-]/g, '').replace(/\D/g, '');
+  
+  // Must have exactly 16 digits to be valid
+  if (digits.length !== 16) {
+    console.warn('Invalid card number length:', digits.length, 'from:', cardNumber);
+    return '**** **** **** ****';
+  }
+  
+  // Extract first 4 and last 4 digits
+  const first4 = digits.substring(0, 4);
+  const last4 = digits.substring(12, 16);
+  
+  // ALWAYS return masked format: "1234 **** **** 5678"
+  // This is the ONLY format that should appear on the card visual
+  const masked = `${first4} **** **** ${last4}`;
+  return masked;
+};
+
 export const CardVisualScreen: React.FC = () => {
   const navigation = useNavigation();
   const {colors: themeColors, isDark} = useTheme();
@@ -27,38 +63,13 @@ export const CardVisualScreen: React.FC = () => {
   // Get full card number (complete, for modal display)
   const fullCardNumber = account?.cardNumber || '**** **** **** ****';
   
-  // Format card number for visual display on card (masked: first 4 + last 4)
-  // This is what appears on the card visual itself
-  const cardNumber = useMemo(() => {
-    const rawNumber = account?.cardNumber;
-    
-    if (!rawNumber || rawNumber === '**** **** **** ****') {
-      return '**** **** **** ****';
-    }
-    
-    // Remove all spaces and non-digit characters to get only digits
-    const digitsOnly = rawNumber.replace(/\D/g, '');
-    
-    // Debug: log to see what we're working with
-    console.log('Card number formatting:', {
-      raw: rawNumber,
-      digitsOnly,
-      length: digitsOnly.length,
+  // Masked card number for display on card - ALWAYS use this for the card visual
+  const maskedCardNumber = useMemo(() => {
+    const masked = maskCardNumber(account?.cardNumber);
+    console.log('Card number masking:', {
+      original: account?.cardNumber,
+      masked: masked,
     });
-    
-    // Must have exactly 16 digits
-    if (digitsOnly.length !== 16) {
-      console.warn('Invalid card number length:', digitsOnly.length);
-      return '**** **** **** ****';
-    }
-    
-    // Extract first 4 and last 4 digits
-    const first4 = digitsOnly.substring(0, 4);
-    const last4 = digitsOnly.substring(12, 16);
-    
-    // Return masked format: "1234 **** **** 5678"
-    const masked = `${first4} **** **** ${last4}`;
-    console.log('Masked card number:', masked);
     return masked;
   }, [account?.cardNumber]);
   
@@ -141,8 +152,10 @@ export const CardVisualScreen: React.FC = () => {
           </View>
 
           <View style={styles.cardNumberContainer}>
-            <Text style={styles.cardNumber} testID="card-number-display">
-              {cardNumber}
+            <Text 
+              style={styles.cardNumber} 
+              testID="card-number-display">
+              {maskedCardNumber}
             </Text>
           </View>
 

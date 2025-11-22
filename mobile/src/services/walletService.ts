@@ -104,9 +104,10 @@ class WalletService {
 
       // Get or generate card number
       const savedCardNumber = await AsyncStorage.getItem(`card_number_${publicKey}`);
-      // If saved number has asterisks (old format), regenerate it
+      // Always generate a new full card number (never store masked version)
+      // The masking is done only in the UI layer
       let cardNumber = savedCardNumber;
-      if (!cardNumber || cardNumber.includes('****')) {
+      if (!cardNumber || cardNumber.includes('****') || cardNumber.length < 16) {
         cardNumber = this.generateCardNumber();
         await AsyncStorage.setItem(`card_number_${publicKey}`, cardNumber);
       }
