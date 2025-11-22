@@ -1,30 +1,81 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Ionicons} from '@expo/vector-icons';
 import {useTheme} from '../theme/ThemeContext';
+import {useWallet} from '../contexts/WalletContext';
 import {StatusBar} from '../components/StatusBar';
 import {VantisLogo} from '../components/VantisLogo';
+import {passkeyService} from '../services/passkeyService';
+import {walletService} from '../services/walletService';
 import {spacing, borderRadius, colors} from '../theme/colors';
 
 export const WelcomeScreen: React.FC = () => {
   const navigation = useNavigation();
   const {colors: themeColors} = useTheme();
   const insets = useSafeAreaInsets();
+  const {connectWallet} = useWallet();
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoginLoading, setIsLoginLoading] = useState(false);
 
   const createAccount = () => {
     navigation.navigate('Onboarding' as never);
   };
 
-  const handleLogin = () => {
-    navigation.navigate('WalletConnect' as never);
+  const handleLogin = async () => {
+    try {
+      setIsLoginLoading(true);
+
+      // Check if passkeys are supported
+      const supported = await passkeyService.isSupported();
+      if (!supported) {
+        Alert.alert(
+          'Passkeys Not Supported',
+          'Your device does not support passkeys. Please enable biometric authentication in your device settings.',
+        );
+        setIsLoginLoading(false);
+        return;
+      }
+
+      // Authenticate with passkey
+      const passkeyAccount = await passkeyService.authenticate();
+
+      if (!passkeyAccount.contractAddress) {
+        // If no contract address linked, navigate to wallet connect
+        navigation.navigate('WalletConnect' as never);
+        setIsLoginLoading(false);
+        return;
+      }
+
+      // Connect wallet using the linked contract address
+      const walletAccount = await walletService.connectWallet(
+        passkeyAccount.contractAddress,
+      );
+
+      // Connect to wallet context
+      await connectWallet(passkeyAccount.contractAddress);
+
+      // Navigate to home
+      navigation.navigate('Home' as never);
+    } catch (error: any) {
+      if (error.message.includes('No passkey account found')) {
+        // No passkey found, navigate to onboarding
+        navigation.navigate('Onboarding' as never);
+      } else {
+        Alert.alert('Error', error.message || 'Failed to sign in with passkey');
+      }
+    } finally {
+      setIsLoginLoading(false);
+    }
   };
 
   return (
@@ -70,36 +121,50 @@ export const WelcomeScreen: React.FC = () => {
               styles.createBtn,
               {
                 backgroundColor: colors.accentTeal,
+                opacity: isLoading ? 0.6 : 1,
               },
             ]}
             onPress={createAccount}
-            activeOpacity={0.8}>
-            <Text
-              style={[
-                styles.btnText,
-                {
-                  color: themeColors.bgPrimary,
-                },
-              ]}>
-              Create an account
-            </Text>
-            <Text style={styles.btnIcon}>🔑</Text>
+            activeOpacity={0.8}
+            disabled={isLoading || isLoginLoading}>
+            {isLoading ? (
+              <ActivityIndicator color={themeColors.bgPrimary} />
+            ) : (
+              <>
+                <Text
+                  style={[
+                    styles.btnText,
+                    {
+                      color: themeColors.bgPrimary,
+                    },
+                  ]}>
+                  Create an account
+                </Text>
+                <Text style={styles.btnIcon}>🔑</Text>
+              </>
+            )}
           </TouchableOpacity>
 
           <View style={styles.loginLink}>
             <Text style={[styles.loginText, {color: themeColors.textSecondary}]}>
               Already have an account?{' '}
             </Text>
-            <TouchableOpacity onPress={handleLogin}>
-              <Text
-                style={[
-                  styles.loginLinkText,
-                  {
-                    color: colors.accentTeal,
-                  },
-                ]}>
-                Log in
-              </Text>
+            <TouchableOpacity
+              onPress={handleLogin}
+              disabled={isLoading || isLoginLoading}>
+              {isLoginLoading ? (
+                <ActivityIndicator size="small" color={colors.accentTeal} />
+              ) : (
+                <Text
+                  style={[
+                    styles.loginLinkText,
+                    {
+                      color: colors.accentTeal,
+                    },
+                  ]}>
+                  Sign in with passkey
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>

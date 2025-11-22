@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useMemo} from 'react';
 import {View, Text, StyleSheet, Dimensions, ScrollView, TouchableOpacity, Alert, Modal} from 'react-native';
 import {LinearGradient} from 'expo-linear-gradient';
 import {Ionicons} from '@expo/vector-icons';
@@ -24,7 +24,61 @@ export const CardVisualScreen: React.FC = () => {
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [showVirtualCardModal, setShowVirtualCardModal] = useState(false);
 
-  const cardNumber = account?.cardNumber || '**** **** **** ****';
+  // Get full card number (complete, for modal display)
+  const fullCardNumber = account?.cardNumber || '**** **** **** ****';
+  
+  // Format card number for visual display on card (masked: first 4 + last 4)
+  // This is what appears on the card visual itself
+  const cardNumber = useMemo(() => {
+    const rawNumber = account?.cardNumber;
+    
+    if (!rawNumber || rawNumber === '**** **** **** ****') {
+      return '**** **** **** ****';
+    }
+    
+    // Remove all spaces and non-digit characters to get only digits
+    const digitsOnly = rawNumber.replace(/\D/g, '');
+    
+    // Debug: log to see what we're working with
+    console.log('Card number formatting:', {
+      raw: rawNumber,
+      digitsOnly,
+      length: digitsOnly.length,
+    });
+    
+    // Must have exactly 16 digits
+    if (digitsOnly.length !== 16) {
+      console.warn('Invalid card number length:', digitsOnly.length);
+      return '**** **** **** ****';
+    }
+    
+    // Extract first 4 and last 4 digits
+    const first4 = digitsOnly.substring(0, 4);
+    const last4 = digitsOnly.substring(12, 16);
+    
+    // Return masked format: "1234 **** **** 5678"
+    const masked = `${first4} **** **** ${last4}`;
+    console.log('Masked card number:', masked);
+    return masked;
+  }, [account?.cardNumber]);
+  
+  // Format full card number for modal (complete, with spaces)
+  const displayFullCardNumber = useMemo(() => {
+    if (!fullCardNumber || fullCardNumber === '**** **** **** ****') {
+      return '**** **** **** ****';
+    }
+    
+    // Remove all spaces and non-digit characters
+    const digitsOnly = fullCardNumber.replace(/\D/g, '');
+    
+    // Must have exactly 16 digits
+    if (digitsOnly.length !== 16) {
+      return fullCardNumber; // Return as is if invalid
+    }
+    
+    // Format with spaces: "1234 5678 9012 3456"
+    return `${digitsOnly.substring(0, 4)} ${digitsOnly.substring(4, 8)} ${digitsOnly.substring(8, 12)} ${digitsOnly.substring(12, 16)}`;
+  }, [fullCardNumber]);
   const cvv = '123';
   const expiryDate = '12/28';
   const cardholderName = account?.publicKey ? 'SELF-CUSTODIAL' : 'YOUR NAME';
@@ -87,7 +141,9 @@ export const CardVisualScreen: React.FC = () => {
           </View>
 
           <View style={styles.cardNumberContainer}>
-            <Text style={styles.cardNumber}>{cardNumber}</Text>
+            <Text style={styles.cardNumber} testID="card-number-display">
+              {cardNumber}
+            </Text>
           </View>
 
           <View style={styles.cardMiddle}>
@@ -161,7 +217,7 @@ export const CardVisualScreen: React.FC = () => {
                   Card Number
                 </Text>
                 <Text style={[styles.detailValue, {color: themeColors.textPrimary}]}>
-                  {cardNumber}
+                  {displayFullCardNumber}
                 </Text>
               </View>
               
@@ -203,14 +259,6 @@ export const CardVisualScreen: React.FC = () => {
                 </Text>
               </View>
             </View>
-            
-            <TouchableOpacity
-              style={[styles.modalButton, styles.modalButtonConfirm, {backgroundColor: colors.accentTeal, marginTop: spacing.lg}]}
-              onPress={() => setShowVirtualCardModal(false)}>
-              <Text style={[styles.modalButtonText, {color: '#FFFFFF'}]}>
-                Close
-              </Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>

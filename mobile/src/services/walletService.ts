@@ -64,11 +64,15 @@ class WalletService {
     // Use backend API or fetch directly in production
   }
 
-  // Generate card number (4 first + 4 last digits with asterisks)
+  // Generate card number (full 16 digits)
   private generateCardNumber(): string {
-    const first4 = Math.floor(1000 + Math.random() * 9000).toString();
-    const last4 = Math.floor(1000 + Math.random() * 9000).toString();
-    return `${first4} **** **** ${last4}`;
+    // Generate 16 random digits
+    let cardNumber = '';
+    for (let i = 0; i < 16; i++) {
+      cardNumber += Math.floor(Math.random() * 10).toString();
+    }
+    // Format as XXXX XXXX XXXX XXXX
+    return `${cardNumber.substring(0, 4)} ${cardNumber.substring(4, 8)} ${cardNumber.substring(8, 12)} ${cardNumber.substring(12, 16)}`;
   }
 
   // Generate new wallet
@@ -100,8 +104,10 @@ class WalletService {
 
       // Get or generate card number
       const savedCardNumber = await AsyncStorage.getItem(`card_number_${publicKey}`);
-      const cardNumber = savedCardNumber || this.generateCardNumber();
-      if (!savedCardNumber) {
+      // If saved number has asterisks (old format), regenerate it
+      let cardNumber = savedCardNumber;
+      if (!cardNumber || cardNumber.includes('****')) {
+        cardNumber = this.generateCardNumber();
         await AsyncStorage.setItem(`card_number_${publicKey}`, cardNumber);
       }
 
