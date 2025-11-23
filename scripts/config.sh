@@ -81,13 +81,13 @@ export XLM_ADDRESS="CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4"
 
 # Native USDC: Standard USDC contract on Stellar testnet
 # Source: https://testnet.blend.capital/dashboard/?poolId=CCCJHH7GPF4AUS652AGSLOCYJDF3AJTOC4LHAZSUVXFG3UFONCHZYVYB
-export USDC_ADDRESS="CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75"
+export USDC_ADDRESS="CAQCFVLOBK5GIULPNZRGATJJMIZL5BSP7X5YJVMGCPTUEPFM4AVSRCJU"
 
 # =============================================================================
 # Blend Protocol Configuration
 # =============================================================================
-# Real Blend pool on testnet: https://testnet.blend.capital/dashboard/?poolId=CCCJHH7GPF4AUS652AGSLOCYJDF3AJTOC4LHAZSUVXFG3UFONCHZYVYB
-export BLEND_POOL_ID="CCCJHH7GPF4AUS652AGSLOCYJDF3AJTOC4LHAZSUVXFG3UFONCHZYVYB"
+# Real Blend pool on testnet: https://testnet.blend.capital/dashboard/?poolId=CDDG7DLOWSHRYQ2HWGZEZ4UTR7LPTKFFHN3QUCSZEXOWOPARMONX6T65
+export BLEND_POOL_ID="CDDG7DLOWSHRYQ2HWGZEZ4UTR7LPTKFFHN3QUCSZEXOWOPARMONX6T65"
 export BLEND_DASHBOARD_URL="https://testnet.blend.capital/dashboard"
 
 # =============================================================================
@@ -99,7 +99,7 @@ export PRICE_STALENESS_THRESHOLD=300     # 5 minutes
 # Test Configuration
 # =============================================================================
 export TEST_DEPOSIT_AMOUNT=40000000      # 4 XLM (7 decimals) - collateral for USDC loan
-export TEST_BORROW_AMOUNT=20000000       # 2 USDC (7 decimals) - realistic borrow based on 4 XLM collateral
+export TEST_BORROW_AMOUNT=2000000        # 0.2 USDC (7 decimals) - safe borrow based on 4 XLM collateral
 export TEST_MINT_AMOUNT=50000000         # 5 XLM (7 decimals) - amount to mint to test users
 export TEST_PRICE_XLM=10000000000000     # $0.10 with 14 decimals
 export TEST_PRICE_BTC=4500000000000000000 # $45,000 with 14 decimals

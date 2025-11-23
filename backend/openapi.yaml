@@ -2505,12 +2505,14 @@ components:
 
     BlendRequestType:
       type: string
-      description: Type of Blend pool operation
+      description: |
+        Type of Blend pool operation. Values must match Blend Protocol's RequestType enum:
+        Supply=0, Withdraw=1, SupplyCollateral=2, WithdrawCollateral=3, Borrow=4, Repay=5, etc.
       enum:
+        - Supply
+        - Withdraw
         - SupplyCollateral
         - WithdrawCollateral
-        - SupplyLiquidity
-        - WithdrawLiquidity
         - Borrow
         - Repay
         - FillUserLiquidationAuction

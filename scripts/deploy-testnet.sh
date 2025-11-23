@@ -184,9 +184,10 @@ initialize_all_contracts() {
     # Real Blend pool address from config
     BLEND_POOL="$BLEND_POOL_ID"
 
-    # Add USDC alias for Stellar CLI workaround
+    # Add USDC alias for Stellar CLI workaround (remove first if exists)
     log_info "Adding USDC alias for Stellar CLI workaround..."
-    stellar contract alias add --id "$USDC_ADDRESS" usdc
+    stellar contract alias remove usdc --network testnet 2>/dev/null || true
+    stellar contract alias add --id "$USDC_ADDRESS" usdc --network testnet
 
     # 1. Initialize Oracle Adapter
     log_info "Initializing Oracle Adapter..."

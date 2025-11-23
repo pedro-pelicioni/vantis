@@ -134,12 +134,13 @@ setup_tests() {
     # Load contract addresses
     ADMIN_ADDRESS=$(get_deployment_address "admin")
     ORACLE_ADDRESS=$(get_deployment_address "oracle_adapter")
-    BLEND_ADAPTER_ADDRESS=$(get_deployment_address "blend_adapter")
+    BLEND_ADAPTER_ADDRESS="CCN6XKT4XLYFJ62H4J62WMYATXG3TQHEIO53CUIKT22TN6ZMLE3VATWI"  # Updated Blend Adapter address
     POOL_ADDRESS=$(get_deployment_address "vantis_pool")
     RISK_ENGINE_ADDRESS=$(get_deployment_address "risk_engine")
     
-    # Use native XLM and USDC addresses from Blend pool (from config.sh)
-    # XLM_ADDRESS and USDC_ADDRESS are already exported from config.sh
+    # Use token contract addresses from config.sh (consistent with Blend pool)
+    XLM_TOKEN_ADDRESS="$XLM_ADDRESS"
+    USDC_TOKEN_ADDRESS="$USDC_ADDRESS"
 
     # Verify addresses
     if [[ -z "$ORACLE_ADDRESS" ]] || [[ -z "$POOL_ADDRESS" ]]; then
@@ -693,7 +694,7 @@ run_integration_tests() {
 PAYMENT_TEST_USER=""           # Public key for contract args
 PAYMENT_TEST_USER_ALIAS=""     # Account alias for --source signing
 INITIAL_COLLATERAL_AMOUNT="$TEST_DEPOSIT_AMOUNT"   # 4 XLM (collateral)
-BORROW_AMOUNT="$TEST_BORROW_AMOUNT"                 # 2 USDC (realistic borrow based on 4 XLM)
+BORROW_AMOUNT="$TEST_BORROW_AMOUNT"                 # 0.2 USDC (safe borrow based on 4 XLM)
 SUPPLY_AMOUNT="100000000000"                        # 10000 USDC for pool liquidity
 
 # Blend Pool Configuration (real Blend pool on testnet)
@@ -769,8 +770,8 @@ setup_payment_flow_test() {
     log_info "Contract Address: ${BLEND_ADAPTER_ADDRESS}"
     log_info "Admin Address: ${ADMIN_ADDRESS}"
     log_info "Blend Pool Address: ${BLEND_POOL_ADDRESS}"
-    log_info "XLM Asset Address: ${XLM_ADDRESS}"
-    log_info "USDC Asset Address: ${USDC_ADDRESS}"
+    log_info "XLM Token Address: ${XLM_TOKEN_ADDRESS}"
+    log_info "USDC Token Address: ${USDC_TOKEN_ADDRESS}"
     log_info "═══════════════════════════════════════════════"
     
     # Query admin to confirm initialization
@@ -828,11 +829,11 @@ setup_payment_flow_test() {
     if [[ "$admin_available" == "true" ]]; then
         log_info "Registering native XLM as collateral asset in BlendAdapter..."
         # Use native XLM address from config.sh
-        
+
         local register_xlm_result=$(invoke_contract "$BLEND_ADAPTER_ADDRESS" "register_asset" "admin" \
             "--caller" "$ADMIN_ADDRESS" \
-            "--asset" "$XLM_ADDRESS" \
-            "--reserve_index" "0" 2>&1)
+            "--asset" "$XLM_TOKEN_ADDRESS" \
+            "--reserve_index" "1" 2>&1)
 
         if [[ "$register_xlm_result" == *"error"* ]] || [[ "$register_xlm_result" == *"Error"* ]]; then
             log_warning "Native XLM registration: ${register_xlm_result}"
@@ -845,8 +846,8 @@ setup_payment_flow_test() {
         log_info "Registering USDC asset in BlendAdapter..."
         local register_usdc_result=$(invoke_contract "$BLEND_ADAPTER_ADDRESS" "register_asset" "admin" \
             "--caller" "$ADMIN_ADDRESS" \
-            "--asset" "$USDC_ADDRESS" \
-            "--reserve_index" "1" 2>&1)
+            "--asset" "$USDC_TOKEN_ADDRESS" \
+            "--reserve_index" "2" 2>&1)
 
         if [[ "$register_usdc_result" == *"error"* ]] || [[ "$register_usdc_result" == *"Error"* ]]; then
             log_warning "USDC registration: ${register_usdc_result}"
@@ -871,8 +872,8 @@ setup_payment_flow_test() {
 test_payment_flow_step1_deposit_collateral() {
     log_info "Step 1: User deposits collateral (native XLM) via BlendAdapter -> Blend Pool..."
 
-    # Use native XLM from Blend pool (from config.sh)
-    local xlm_native="$XLM_ADDRESS"
+    # Use correct XLM token address
+    local xlm_native="$XLM_TOKEN_ADDRESS"
 
     # Log parameters
     log_info "═══ DEPOSIT OPERATION DEBUG INFO ═══"
@@ -1136,8 +1137,8 @@ test_payment_flow_step5_repay_debt() {
 test_payment_flow_step6_withdraw_collateral() {
     log_info "Step 6: User withdraws collateral (native XLM)..."
 
-    # Use native XLM from Blend pool (from config.sh)
-    local xlm_native="$XLM_ADDRESS"
+    # Use correct XLM token address
+    local xlm_native="$XLM_TOKEN_ADDRESS"
 
     # Check positions before
     local positions_before=$(read_contract "$BLEND_ADAPTER_ADDRESS" "get_positions" \

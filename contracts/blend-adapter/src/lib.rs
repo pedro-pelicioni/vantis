@@ -13,7 +13,7 @@
 //! interface and provides a simpler API for Vantis operations.
 
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, symbol_short, token, Address, Env, Vec,
+    auth, contract, contracterror, contractimpl, contracttype, symbol_short, token, vec, Address, Env, IntoVal, Vec,
 };
 use blend_contract_sdk::pool;
 
@@ -224,12 +224,13 @@ impl BlendAdapterContract {
             return Err(AdapterError::InvalidAmount);
         }
 
-        let usdc = Self::get_usdc(&env)?;
+        // Use stored USDC address
+        let usdc_address = Self::get_usdc(&env)?;
 
         // Build and submit the request to Blend
         let request = Request {
             request_type: RequestType::Borrow,
-            address: usdc.clone(),
+            address: usdc_address,
             amount,
         };
 
@@ -254,11 +255,12 @@ impl BlendAdapterContract {
             return Err(AdapterError::InvalidAmount);
         }
 
-        let usdc = Self::get_usdc(&env)?;
+        // Use stored USDC address
+        let usdc_address = Self::get_usdc(&env)?;
         let blend_pool = Self::get_blend_pool(&env)?;
 
         // Transfer USDC from user to this contract
-        let token_client = token::Client::new(&env, &usdc);
+        let token_client = token::Client::new(&env, &usdc_address);
         token_client.transfer(&user, &env.current_contract_address(), &amount);
 
         // Approve Blend pool to spend the tokens
@@ -269,7 +271,7 @@ impl BlendAdapterContract {
         // Build and submit the request to Blend
         let request = Request {
             request_type: RequestType::Repay,
-            address: usdc.clone(),
+            address: usdc_address,
             amount,
         };
 
@@ -531,9 +533,35 @@ impl BlendAdapterContract {
             blend_requests.push_back(blend_request);
         }
 
+        // Collect unique token addresses from requests and sum amounts per token
+        let mut token_amounts = soroban_sdk::Map::new(env);
+        for request in requests.iter() {
+            let current = token_amounts.get(request.address.clone()).unwrap_or(0);
+            token_amounts.set(request.address.clone(), current + request.amount);
+        }
+
+        let unique_tokens: Vec<Address> = token_amounts.keys();
+
+        // Authorize the token transfers
+        let mut auth_entries = Vec::new(env);
+        for token in unique_tokens.iter() {
+            let transfer_amount = token_amounts.get(token.clone()).unwrap();
+            let context = auth::ContractContext {
+                contract: token.clone(),
+                fn_name: symbol_short!("transfer"),
+                args: (env.current_contract_address(), blend_pool.clone(), transfer_amount).into_val(env),
+            };
+            let auth_entry = auth::InvokerContractAuthEntry::Contract(auth::SubContractInvocation {
+                context,
+                sub_invocations: vec![&env],
+            });
+            auth_entries.push_back(auth_entry);
+        }
+        env.authorize_as_current_contract(auth_entries);
+
         // Use the Blend SDK to submit requests to the pool with error handling
         let pool_client = pool::Client::new(env, &blend_pool);
-        
+
         // Attempt to submit to Blend pool
         // If this fails, it will panic in the SDK, but we log before attempting
         pool_client.submit(from, &env.current_contract_address(), to, &blend_requests);

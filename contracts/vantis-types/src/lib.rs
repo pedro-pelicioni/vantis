@@ -12,18 +12,21 @@ use soroban_sdk::{contracttype, Address, Vec};
 ///
 /// These correspond to the actions that can be performed on a Blend pool
 /// via the `submit` function.
+///
+/// IMPORTANT: These values MUST match the Blend Protocol's RequestType enum:
+/// https://github.com/blend-capital/blend-contracts/blob/main/pool/src/pool/actions.rs
 #[contracttype]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u32)]
 pub enum RequestType {
-    /// Supply an asset as collateral
-    SupplyCollateral = 0,
-    /// Withdraw collateral
-    WithdrawCollateral = 1,
-    /// Supply liquidity to the pool (lender)
-    SupplyLiquidity = 2,
+    /// Supply liquidity to the pool (lender) - NOT collateral
+    Supply = 0,
     /// Withdraw supplied liquidity
-    WithdrawLiquidity = 3,
+    Withdraw = 1,
+    /// Supply an asset as collateral (for borrowing against)
+    SupplyCollateral = 2,
+    /// Withdraw collateral
+    WithdrawCollateral = 3,
     /// Borrow an asset from the pool
     Borrow = 4,
     /// Repay borrowed asset

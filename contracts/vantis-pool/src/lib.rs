@@ -37,8 +37,8 @@ pub enum DataKey {
     Oracle,
     /// Risk engine contract
     RiskEngine,
-    /// USDC token address
-    UsdcToken,
+    /// XLM token address
+    XlmToken,
     /// Blend adapter contract address
     BlendPool,
     /// Supported collateral assets
@@ -141,14 +141,14 @@ impl VantisPoolContract {
     /// # Arguments
     /// * `admin` - Admin address
     /// * `oracle` - Oracle adapter contract address
-    /// * `usdc_token` - USDC token address
+    /// * `xlm_token` - XLM token address
     /// * `blend_pool_address` - Blend adapter contract address
     /// * `interest_params` - Interest rate parameters
     pub fn initialize(
         env: Env,
         admin: Address,
         oracle: Address,
-        usdc_token: Address,
+        xlm_token: Address,
         blend_pool_address: Address,
         interest_params: InterestRateParams,
     ) {
@@ -158,7 +158,7 @@ impl VantisPoolContract {
 
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::Oracle, &oracle);
-        env.storage().instance().set(&DataKey::UsdcToken, &usdc_token);
+        env.storage().instance().set(&DataKey::XlmToken, &xlm_token);
         env.storage().instance().set(&DataKey::BlendPool, &blend_pool_address);
         env.storage().instance().set(&DataKey::InterestParams, &interest_params);
         env.storage().instance().set(&DataKey::TotalBorrows, &0i128);
@@ -518,7 +518,7 @@ impl VantisPoolContract {
         Ok(())
     }
 
-    /// Supply USDC liquidity to the pool (for lenders)
+    /// Supply XLM liquidity to the pool (for lenders)
     pub fn supply(env: Env, supplier: Address, amount: i128) -> Result<(), PoolError> {
         supplier.require_auth();
 
@@ -526,9 +526,9 @@ impl VantisPoolContract {
             return Err(PoolError::InvalidAmount);
         }
 
-        // Transfer USDC from supplier to pool
-        let usdc: Address = env.storage().instance().get(&DataKey::UsdcToken).unwrap();
-        let token_client = token::Client::new(&env, &usdc);
+        // Transfer XLM from supplier to pool
+        let xlm: Address = env.storage().instance().get(&DataKey::XlmToken).unwrap();
+        let token_client = token::Client::new(&env, &xlm);
         token_client.transfer(&supplier, &env.current_contract_address(), &amount);
 
         // Update pool reserves
