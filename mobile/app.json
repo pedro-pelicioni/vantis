@@ -28,6 +28,17 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "scheme": "vantis"
+    "scheme": "vantis",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "591bb27f-0d28-4bce-a036-cf891021abd0"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/591bb27f-0d28-4bce-a036-cf891021abd0"
+    }
   }
 }
