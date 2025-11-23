@@ -1,19 +1,22 @@
 # Vantis Mobile
 
-React Native mobile application with Expo for Vantis - The "Buy & Keep" Card.
+React Native mobile application with Expo for Vantis - The "Buy & Keep" Card. A self-custodial wallet with installment payment capabilities.
 
 ## Project Structure
 
 ```
 mobile/
 ├── src/
-│   ├── components/      # Reusable components
-│   ├── screens/         # Application screens
+│   ├── components/      # Reusable components (Header, NavigationBar, ThemeToggle, VantisLogo, etc.)
+│   ├── screens/         # Application screens (Welcome, Home, Card, Payment, etc.)
 │   ├── theme/           # Theme system and colors
-│   └── utils/           # Utilities
+│   ├── contexts/        # React contexts (WalletContext, ThemeContext)
+│   ├── services/        # Services (walletService, passkeyService)
+│   └── config/          # Configuration files
 ├── App.tsx              # Root component
 ├── index.js             # Entry point
 ├── app.json             # Expo configuration
+├── eas.json             # EAS Build configuration
 └── package.json         # Dependencies
 ```
 
@@ -24,6 +27,7 @@ mobile/
 - Node.js >= 18
 - Expo CLI (installed globally or via npx)
 - Expo Go app on your mobile device (for development)
+- EAS CLI (for publishing updates): `npm install -g eas-cli`
 
 ### Installation Steps
 
@@ -79,25 +83,98 @@ npm run web
 - **Expo** ~54.0.0 - React Native framework
 - **React Native** 0.81.5
 - **TypeScript**
-- **React Navigation** - Screen navigation
+- **React Navigation** - Screen navigation (Stack and Bottom Tabs)
 - **AsyncStorage** - Local storage
 - **React Native Gesture Handler** - Gestures
+- **Expo Linear Gradient** - Gradient backgrounds
+- **Expo Local Authentication** - Biometric authentication for passkeys
+- **React Native SVG** - SVG rendering for logo
+- **EAS Update** - Over-the-air updates
+
+## Key Features
+
+### Authentication
+- **Passkey Authentication**: Passwordless login using device biometrics (Face ID, Touch ID, Fingerprint)
+- Secure wallet connection using passkey-based authentication
+
+### Wallet Management
+- Self-custodial wallet with Stellar network support
+- Balance display in USD and XLM
+- Support for multiple tokens (XLM, USDC, BTC)
+- Balance visibility toggle (eye icon)
+- Transaction history
+
+### Card Features
+- **Virtual Card**: Display card with masked number (first 4 + last 4 digits)
+- Card number generation on wallet creation
+- Card blocking/unblocking functionality
+- Card details modal with full number, CVV, and expiry date
+- Realistic card design with gradient and logo
+
+### Payment System
+- **Payment Screen**: Simplified payment flow with card display
+- Installment options (1x, 2x, 3x, 4x, 5x, 6x, 8x, 10x, 11x, 12x)
+- Card payment simulation with animated card display
+- Success confirmation with animated checkmark
+- USD currency support
+
+### Send & Receive
+- **Send**: Transfer funds to other wallets
+- **Receive**: Display wallet address and QR code for receiving funds
+
+### DeFi
+- Token portfolio display
+- Asset management
 
 ## Navigation Structure
 
-- **Welcome** - Welcome screen
-- **Onboarding** - Initial account setup
+- **Welcome** - Welcome screen with passkey registration/login
+- **Onboarding** - Initial account setup with passkey
 - **Main Tabs**:
-  - Home
-  - Card
-  - Pay Mode
-  - DeFi
-  - Activity
-- **Settings** - Settings
+  - **Home** - Dashboard with balance, send/receive buttons, and activity
+  - **Card** - Virtual card display with blocking options
+  - **Pay** - Payment screen with card simulation
+  - **DeFi** - Token portfolio
+  - **Activity** - Transaction history
+- **Settings** - Theme toggle, support, logout
+- **Payment** - Payment screen with installment options
+- **Receive** - QR code and wallet address display
+- **Transfer** - Send funds screen
 
 ## Theme System
 
-The application supports light and dark themes, with persistence using AsyncStorage. The theme can be toggled through the `ThemeToggle` component.
+The application supports light and dark themes, with persistence using AsyncStorage. The theme can be toggled through the `ThemeToggle` component in the header or settings screen.
+
+- Automatic theme detection based on system preferences
+- Persistent theme selection
+- Smooth theme transitions
+
+## EAS Update (Over-the-Air Updates)
+
+The app is configured with EAS Update for seamless over-the-air updates without app store approval.
+
+### Publishing Updates
+
+1. **Login to Expo:**
+```bash
+npx expo login
+```
+
+2. **Publish an update:**
+```bash
+eas update --branch production --message "Your update message"
+```
+
+3. **View updates in dashboard:**
+- Visit: https://expo.dev/accounts/vhendala/projects/vantis-mobile/updates
+
+### Update Configuration
+
+- **Runtime Version**: `1.0.0` (appVersion policy)
+- **Branch**: `production`
+- **Project ID**: `591bb27f-0d28-4bce-a036-cf891021abd0`
+
+Updates are automatically downloaded when users open the app.
 
 ## Development
 
@@ -123,8 +200,9 @@ eas build --platform ios
 - ✅ Native hot reload
 - ✅ No need to configure Android Studio/Xcode for development
 - ✅ Easy access to native APIs
-- ✅ Over-the-air updates
+- ✅ Over-the-air updates (EAS Update)
 - ✅ Cloud builds (EAS Build)
+- ✅ Biometric authentication support
 
 ## Troubleshooting
 
@@ -177,18 +255,47 @@ Tunnel mode creates a connection through the internet, bypassing the firewall.
 
 This project uses **Expo SDK 54.0.0** for compatibility with modern devices.
 
+## Security Features
+
+- **Passkey Authentication**: Secure passwordless authentication using WebAuthn
+- **Biometric Verification**: Face ID, Touch ID, Fingerprint support
+- **Self-Custodial Wallet**: Users control their private keys
+- **Card Number Masking**: Sensitive data is masked on display
+- **Secure Storage**: AsyncStorage for local data persistence
+
+## Recent Updates
+
+- ✅ Payment screen with card simulation
+- ✅ Card number masking (first 4 + last 4 digits)
+- ✅ Installment payment options
+- ✅ Success confirmation with animated checkmark
+- ✅ EAS Update configuration
+- ✅ Passkey authentication
+- ✅ Balance visibility toggle
+- ✅ USD balance display
+- ✅ Send and Receive functionality
+- ✅ Virtual card with blocking options
+
 ## Notes
 
 - The application was migrated from Nuxt.js/Vue.js to React Native with Expo
 - Maintains the same visual structure and functionalities as the web frontend
 - Components adapted for mobile with native navigation
 - React Native Reanimated was removed for compatibility reasons
+- Wallet service uses mock implementations for Stellar network (ready for integration)
 
 ## Next Steps
 
 1. ✅ Project configured with Expo
 2. ✅ Navigation configured
 3. ✅ Theme system implemented
-4. ⏭️ Add specific functionalities
-5. ⏭️ Integrate with backend
-6. ⏭️ Tests and deployment
+4. ✅ Passkey authentication
+5. ✅ Payment system
+6. ✅ Card management
+7. ⏭️ Integrate with Stellar network (real-time balance and transactions)
+8. ⏭️ Backend integration
+9. ⏭️ Tests and deployment
+
+## License
+
+Copyright © 2024 Vantis. All rights reserved.
