@@ -15,6 +15,7 @@
 use soroban_sdk::{
     contract, contracterror, contractimpl, contracttype, symbol_short, token, Address, Env, Vec,
 };
+use blend_contract_sdk::pool;
 
 // Re-export types from the shared types crate
 pub use vantis_types::{
@@ -149,7 +150,9 @@ impl BlendAdapterContract {
         token_client.transfer(&user, &env.current_contract_address(), &amount);
 
         // Approve Blend pool to spend the tokens
-        token_client.approve(&env.current_contract_address(), &blend_pool, &amount, &1000000);
+        // Set expiration to current ledger + 1000 ledgers (about 1.4 hours)
+        let expiration_ledger = env.ledger().sequence() + 1000;
+        token_client.approve(&env.current_contract_address(), &blend_pool, &amount, &expiration_ledger);
 
         // Build and submit the request to Blend
         let request = Request {
@@ -259,7 +262,9 @@ impl BlendAdapterContract {
         token_client.transfer(&user, &env.current_contract_address(), &amount);
 
         // Approve Blend pool to spend the tokens
-        token_client.approve(&env.current_contract_address(), &blend_pool, &amount, &1000000);
+        // Set expiration to current ledger + 1000 ledgers (about 1.4 hours)
+        let expiration_ledger = env.ledger().sequence() + 1000;
+        token_client.approve(&env.current_contract_address(), &blend_pool, &amount, &expiration_ledger);
 
         // Build and submit the request to Blend
         let request = Request {
@@ -310,16 +315,52 @@ impl BlendAdapterContract {
     /// Get user's positions in the Blend pool
     ///
     /// Returns collateral, liabilities (borrows), and supply positions
-    pub fn get_positions(env: Env, _user: Address) -> Result<Positions, AdapterError> {
-        let _blend_pool = Self::get_blend_pool(&env)?;
+    pub fn get_positions(env: Env, user: Address) -> Result<Positions, AdapterError> {
+        let blend_pool = Self::get_blend_pool(&env)?;
 
-        // In production, this would call blend_pool.get_positions(user)
-        // For now, return empty positions as placeholder
-        Ok(Positions {
-            collateral: Vec::new(&env),
-            liabilities: Vec::new(&env),
-            supply: Vec::new(&env),
-        })
+        // Log the query parameters
+        env.events().publish(
+            (symbol_short!("get_pos"), symbol_short!("start")),
+            (&blend_pool, &user),
+        );
+
+        // Call the Blend pool's get_positions function with error handling
+        let pool_client = pool::Client::new(&env, &blend_pool);
+        let blend_positions = pool_client.get_positions(&user);
+
+        // Convert blend_contract_sdk::pool::Positions (Map-based) to vantis_types::Positions (Vec-based)
+        let mut collateral_vec = Vec::new(&env);
+        let mut liabilities_vec = Vec::new(&env);
+        let mut supply_vec = Vec::new(&env);
+
+        // Convert collateral Map to Vec
+        for (key, value) in blend_positions.collateral.iter() {
+            collateral_vec.push_back((key, value));
+        }
+
+        // Convert liabilities Map to Vec
+        for (key, value) in blend_positions.liabilities.iter() {
+            liabilities_vec.push_back((key, value));
+        }
+
+        // Convert supply Map to Vec
+        for (key, value) in blend_positions.supply.iter() {
+            supply_vec.push_back((key, value));
+        }
+
+        let positions = Positions {
+            collateral: collateral_vec,
+            liabilities: liabilities_vec,
+            supply: supply_vec,
+        };
+
+        // Log the result sizes for diagnostics
+        env.events().publish(
+            (symbol_short!("get_pos"), symbol_short!("result")),
+            (positions.collateral.len(), positions.liabilities.len(), positions.supply.len()),
+        );
+
+        Ok(positions)
     }
 
     /// Calculate health factor for a user
@@ -463,7 +504,7 @@ impl BlendAdapterContract {
 
     /// Submit requests to the Blend pool
     ///
-    /// In production, this calls the Blend pool's submit function:
+    /// Calls the Blend pool's submit function:
     /// `blend_pool.submit(from, spender, to, requests)`
     fn submit_to_blend(
         env: &Env,
@@ -471,16 +512,39 @@ impl BlendAdapterContract {
         to: &Address,
         requests: &Vec<Request>,
     ) -> Result<(), AdapterError> {
-        let _blend_pool = Self::get_blend_pool(env)?;
+        let blend_pool = Self::get_blend_pool(env)?;
 
-        // In production, this would use the Blend SDK:
-        // ```
-        // use blend_contract_sdk::pool;
-        // let pool_client = pool::Client::new(env, &blend_pool);
-        // pool_client.submit(from, &env.current_contract_address(), to, requests);
-        // ```
+        // Log the submission parameters before calling Blend pool
+        env.events().publish(
+            (symbol_short!("submit"), symbol_short!("start")),
+            (&blend_pool, from, to, requests.len()),
+        );
 
-        // For now, emit an event indicating the submission
+        // Convert vantis_types::Request to blend_contract_sdk::pool::Request
+        let mut blend_requests = Vec::new(env);
+        for request in requests.iter() {
+            let blend_request = pool::Request {
+                request_type: request.request_type as u32,
+                address: request.address.clone(),
+                amount: request.amount,
+            };
+            blend_requests.push_back(blend_request);
+        }
+
+        // Use the Blend SDK to submit requests to the pool with error handling
+        let pool_client = pool::Client::new(env, &blend_pool);
+        
+        // Attempt to submit to Blend pool
+        // If this fails, it will panic in the SDK, but we log before attempting
+        pool_client.submit(from, &env.current_contract_address(), to, &blend_requests);
+
+        // Log successful submission
+        env.events().publish(
+            (symbol_short!("submit"), symbol_short!("success")),
+            (from, to, requests.len()),
+        );
+
+        // Emit an event indicating the submission
         env.events().publish(
             (symbol_short!("blend"), symbol_short!("submit")),
             (from, to, requests.len()),

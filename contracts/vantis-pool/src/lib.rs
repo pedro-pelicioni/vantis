@@ -227,7 +227,9 @@ impl VantisPoolContract {
         token_client.transfer(&user, &env.current_contract_address(), &amount);
 
         // Approve Blend adapter to spend the tokens
-        token_client.approve(&env.current_contract_address(), &blend_pool, &amount, &1000000);
+        // Set expiration to current ledger + 1000 ledgers (about 1.4 hours)
+        let expiration_ledger = env.ledger().sequence() + 1000;
+        token_client.approve(&env.current_contract_address(), &blend_pool, &amount, &expiration_ledger);
 
         // Route through Blend adapter by invoking its deposit_collateral function
         // Note: In production, this would use the blend-adapter contract client

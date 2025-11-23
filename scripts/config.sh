@@ -74,6 +74,23 @@ export XLM_LIQUIDATION_THRESHOLD=8500    # 85%
 export XLM_LIQUIDATION_PENALTY=500       # 5%
 
 # =============================================================================
+# Native Token Addresses (from Blend pool on testnet)
+# =============================================================================
+# Native XLM: Special Soroban address for native Stellar asset
+export XLM_ADDRESS="CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABSC4"
+
+# Native USDC: Standard USDC contract on Stellar testnet
+# Source: https://testnet.blend.capital/dashboard/?poolId=CCCJHH7GPF4AUS652AGSLOCYJDF3AJTOC4LHAZSUVXFG3UFONCHZYVYB
+export USDC_ADDRESS="CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75"
+
+# =============================================================================
+# Blend Protocol Configuration
+# =============================================================================
+# Real Blend pool on testnet: https://testnet.blend.capital/dashboard/?poolId=CCCJHH7GPF4AUS652AGSLOCYJDF3AJTOC4LHAZSUVXFG3UFONCHZYVYB
+export BLEND_POOL_ID="CCCJHH7GPF4AUS652AGSLOCYJDF3AJTOC4LHAZSUVXFG3UFONCHZYVYB"
+export BLEND_DASHBOARD_URL="https://testnet.blend.capital/dashboard"
+
+# =============================================================================
 # Oracle Configuration
 # =============================================================================
 export PRICE_STALENESS_THRESHOLD=300     # 5 minutes
@@ -81,8 +98,9 @@ export PRICE_STALENESS_THRESHOLD=300     # 5 minutes
 # =============================================================================
 # Test Configuration
 # =============================================================================
-export TEST_DEPOSIT_AMOUNT=10000000000   # 1000 XLM (7 decimals)
-export TEST_BORROW_AMOUNT=500000000      # 50 USDC (7 decimals)
+export TEST_DEPOSIT_AMOUNT=40000000      # 4 XLM (7 decimals) - collateral for USDC loan
+export TEST_BORROW_AMOUNT=20000000       # 2 USDC (7 decimals) - realistic borrow based on 4 XLM collateral
+export TEST_MINT_AMOUNT=50000000         # 5 XLM (7 decimals) - amount to mint to test users
 export TEST_PRICE_XLM=10000000000000     # $0.10 with 14 decimals
 export TEST_PRICE_BTC=4500000000000000000 # $45,000 with 14 decimals
 
@@ -130,16 +148,34 @@ check_command() {
 }
 
 # Generate a new keypair and fund it via friendbot
-# Returns the public key on stdout (all log messages go to stderr)
+# Returns the account ALIAS (name) on stdout for use with --source
+# The public key is saved in the keys file and can be retrieved with get_account_public_key
+#
+# Special case: For "admin" account used in deployment, returns PUBLIC KEY
+# (for backwards compatibility with deployment script)
 create_funded_account() {
     local name=$1
     local keys_file="${DEPLOYMENTS_DIR}/${name}_keys.json"
 
     if [[ -f "$keys_file" ]]; then
-        log_info "Using existing keypair for ${name}" >&2
-        # Return just the public key
-        jq -r '.public_key' "$keys_file"
-        return
+        # Check if the key exists in stellar CLI
+        if stellar keys address "${name}" &>/dev/null; then
+            log_info "Using existing keypair for ${name}" >&2
+            # For admin account in deploy script, return public key for backwards compatibility
+            if [[ "$name" == "admin" ]]; then
+                jq -r '.public_key' "$keys_file"
+            else
+                echo "$name"
+            fi
+            return
+        else
+            # Key file exists but CLI key is missing - we CANNOT recover the secret key
+            # Must generate a completely new keypair
+            log_warning "Keys file exists but CLI key missing for ${name}" >&2
+            log_warning "Secret key is lost - generating NEW keypair (old contracts will have different admin)" >&2
+            rm -f "$keys_file"
+            # Fall through to generate new key
+        fi
     fi
 
     log_info "Creating new keypair for ${name}..." >&2
@@ -153,15 +189,34 @@ create_funded_account() {
         exit 1
     fi
 
+    # Get the secret key
+    local secret_key=$(stellar keys show "${name}" 2>/dev/null)
+
+    if [[ -z "$secret_key" ]]; then
+        log_error "Failed to get secret key for ${name}" >&2
+        exit 1
+    fi
+
     log_info "Funding account via friendbot..." >&2
     curl -s "${FRIENDBOT_URL}?addr=${public_key}" > /dev/null
 
-    # Save keys info
-    echo "{\"name\": \"${name}\", \"public_key\": \"${public_key}\"}" > "$keys_file"
+    # Save keys info (name, public key, and secret key)
+    echo "{\"name\": \"${name}\", \"public_key\": \"${public_key}\", \"secret_key\": \"${secret_key}\"}" > "$keys_file"
 
     log_success "Account ${name} created and funded: ${public_key}" >&2
-    # Return just the public key
-    echo "$public_key"
+
+    # For admin account in deploy script, return public key for backwards compatibility
+    if [[ "$name" == "admin" ]]; then
+        echo "$public_key"
+    else
+        echo "$name"
+    fi
+}
+
+# Get the public key for an account alias
+get_account_public_key() {
+    local name=$1
+    stellar keys address "${name}" 2>/dev/null
 }
 
 # Get deployment address from file

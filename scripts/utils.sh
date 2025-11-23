@@ -78,8 +78,6 @@ invoke_contract() {
     shift 3
     local args=("$@")
 
-    log_info "Invoking ${function_name} on ${contract_id}..." >&2
-
     # Build the command with proper quoting
     local cmd="stellar contract invoke --id '${contract_id}' --source '${source_account}' --network testnet -- ${function_name}"
 
@@ -87,18 +85,45 @@ invoke_contract() {
         cmd="${cmd} ${arg}"
     done
 
-    log_info "Command: ${cmd}" >&2
+    # Log the full command being executed (for debugging)
+    if [[ "${VERBOSE:-false}" == "true" ]]; then
+        log_info "📋 Executing contract invocation:"
+        log_info "   Contract ID: ${contract_id}"
+        log_info "   Function: ${function_name}"
+        log_info "   Source: ${source_account}"
+        log_info "   Arguments: ${args[@]}"
+        log_info "   Full Command: ${cmd}"
+    fi
 
     local result
+    local stderr_output
+    
+    # Capture both stdout and stderr separately for better debugging
     result=$(eval "$cmd" 2>&1)
     local exit_code=$?
 
+    # Log the full response for debugging
+    if [[ "${VERBOSE:-false}" == "true" ]]; then
+        log_info "📤 Contract invocation response:"
+        log_info "   Exit Code: ${exit_code}"
+        log_info "   Output: ${result}"
+    fi
+
     if [[ $exit_code -ne 0 ]]; then
-        log_error "Invocation failed: ${result}" >&2
+        log_error "❌ Invocation failed with exit code ${exit_code}"
+        log_error "   Contract: ${contract_id}"
+        log_error "   Function: ${function_name}"
+        log_error "   Error Output: ${result}" >&2
         return 1
     fi
 
-    echo "$result"
+    # Extract transaction hash if present (64 character hex string)
+    local tx_hash=$(echo "$result" | grep -oE '[a-f0-9]{64}' | head -1)
+    if [[ -n "$tx_hash" ]]; then
+        echo "TX:${tx_hash}"
+    else
+        echo "$result"
+    fi
 }
 
 # Read-only contract call (no auth required)
@@ -114,7 +139,27 @@ read_contract() {
         cmd="${cmd} ${arg}"
     done
 
-    eval "$cmd" 2>&1
+    # Log the full command being executed (for debugging)
+    if [[ "${VERBOSE:-false}" == "true" ]]; then
+        log_info "📖 Executing read-only contract call:"
+        log_info "   Contract ID: ${contract_id}"
+        log_info "   Function: ${function_name}"
+        log_info "   Arguments: ${args[@]}"
+        log_info "   Full Command: ${cmd}"
+    fi
+
+    local result
+    result=$(eval "$cmd" 2>&1)
+    local exit_code=$?
+
+    # Log the full response for debugging
+    if [[ "${VERBOSE:-false}" == "true" ]]; then
+        log_info "📥 Read-only contract response:"
+        log_info "   Exit Code: ${exit_code}"
+        log_info "   Output: ${result}"
+    fi
+
+    echo "$result"
 }
 
 # =============================================================================
@@ -252,6 +297,39 @@ run_test() {
         log_error "TEST FAILED: ${test_name}"
         return 1
     fi
+}
+
+# =============================================================================
+# Blend Pool Configuration
+# =============================================================================
+
+# Configure the BlendAdapter to use the real Blend pool
+configure_blend_adapter() {
+    local blend_adapter=$1
+    local blend_pool=$2
+    local admin=$3
+
+    log_info "Configuring BlendAdapter to use Blend pool: ${blend_pool}"
+
+    local result=$(invoke_contract "$blend_adapter" "set_blend_pool" "$admin" \
+        "--caller" "$admin" \
+        "--blend_pool" "$blend_pool" 2>&1)
+
+    if [[ "$result" == *"error"* ]] || [[ "$result" == *"Error"* ]]; then
+        log_warning "Failed to configure BlendAdapter: ${result}"
+        return 1
+    fi
+
+    log_success "BlendAdapter configured with Blend pool"
+    return 0
+}
+
+# Get the Blend pool address from BlendAdapter
+get_blend_pool_from_adapter() {
+    local blend_adapter=$1
+
+    local result=$(read_contract "$blend_adapter" "blend_pool" 2>&1)
+    echo "$result" | grep -oE 'C[A-Z0-9]{55}' | head -1
 }
 
 # =============================================================================

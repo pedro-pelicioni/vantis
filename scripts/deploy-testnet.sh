@@ -9,7 +9,8 @@
 #   ./scripts/deploy-testnet.sh [options]
 #
 # Options:
-#   --reset     Reset deployment and redeploy all contracts
+#   --reset     Reset deployment: clears deployment file and admin key,
+#               forces fresh deployment with new contracts and new admin key
 #   --build     Build contracts before deploying
 #   --help      Show this help message
 #
@@ -17,6 +18,12 @@
 #   - Stellar CLI installed (stellar --version)
 #   - Rust and cargo installed
 #   - wasm32-unknown-unknown target installed
+#
+# Important Notes:
+#   - Contracts are immutable on Stellar and cannot be force-redeployed
+#   - Each deployment creates new contract instances with new addresses
+#   - Use --reset to clear old deployment state and start fresh
+#   - The admin key is tied to the deployment and cannot be changed
 #
 # =============================================================================
 
@@ -52,7 +59,8 @@ while [[ $# -gt 0 ]]; do
             echo "Usage: $0 [options]"
             echo ""
             echo "Options:"
-            echo "  --reset     Reset deployment and redeploy all contracts"
+            echo "  --reset     Reset deployment: clears deployment file and admin key,"
+            echo "              forces fresh deployment with new contracts and new admin key"
             echo "  --build     Build contracts before deploying (default)"
             echo "  --no-build  Skip building contracts"
             echo "  --help      Show this help message"
@@ -84,9 +92,13 @@ main() {
     check_command "curl"
     log_success "All prerequisites met"
 
-    # Reset if requested
+    # Reset if requested - clears deployment file AND admin key
     if [[ "$RESET_DEPLOYMENT" == "true" ]]; then
+        log_step "Resetting deployment: clearing deployment file and admin key..."
         reset_deployment
+        # Remove admin key from stellar CLI
+        stellar keys rm admin 2>/dev/null || true
+        log_success "Deployment reset complete - will generate new admin key"
     fi
 
     # Create deployments directory
@@ -108,11 +120,11 @@ main() {
     save_deployment_address "admin" "$ADMIN_ADDRESS"
     log_success "Admin account: ${ADMIN_ADDRESS}"
 
-    # Deploy tokens (USDC mock for testnet)
-    deploy_mock_tokens
-
     # Deploy contracts in dependency order
     deploy_all_contracts
+
+    # Validate admin key after deployment
+    validate_admin_key "$ADMIN_ADDRESS"
 
     # Initialize contracts
     initialize_all_contracts
@@ -122,31 +134,6 @@ main() {
 
     # Print summary
     print_deployment_summary
-}
-
-# =============================================================================
-# Deploy Mock Tokens
-# =============================================================================
-
-deploy_mock_tokens() {
-    log_step "Deploying mock tokens for testnet..."
-
-    # For testnet, we'll use the native XLM and deploy a mock USDC
-    # The native XLM SAC address on testnet
-    local xlm_sac="CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC"
-    save_deployment_address "token_XLM" "$xlm_sac"
-    log_info "Using native XLM SAC: ${xlm_sac}"
-
-    # Deploy mock USDC token
-    ADMIN_ADDRESS=$(get_deployment_address "admin")
-
-    # For simplicity, we'll use a placeholder for USDC
-    # In production, you'd use the actual USDC SAC
-    local usdc_placeholder="CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA"
-    save_deployment_address "token_USDC" "$usdc_placeholder"
-    log_info "Using USDC placeholder: ${usdc_placeholder}"
-
-    log_success "Mock tokens configured"
 }
 
 # =============================================================================
@@ -189,49 +176,91 @@ initialize_all_contracts() {
     BLEND_ADAPTER_ADDRESS=$(get_deployment_address "blend_adapter")
     POOL_ADDRESS=$(get_deployment_address "vantis_pool")
     RISK_ENGINE_ADDRESS=$(get_deployment_address "risk_engine")
-    USDC_ADDRESS=$(get_deployment_address "token_USDC")
-    XLM_ADDRESS=$(get_deployment_address "token_XLM")
+    
+    # Use native XLM and USDC addresses from Blend pool (from config.sh)
+    USDC_ADDRESS="$USDC_ADDRESS"
+    XLM_ADDRESS="$XLM_ADDRESS"
 
-    # Mock Blend pool address (would be real Blend pool in production)
-    MOCK_BLEND_POOL="CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
+    # Real Blend pool address from config
+    BLEND_POOL="$BLEND_POOL_ID"
+
+    # Add USDC alias for Stellar CLI workaround
+    log_info "Adding USDC alias for Stellar CLI workaround..."
+    stellar contract alias add --id "$USDC_ADDRESS" usdc
 
     # 1. Initialize Oracle Adapter
     log_info "Initializing Oracle Adapter..."
-    stellar contract invoke \
+    local oracle_result
+    oracle_result=$(stellar contract invoke \
         --id "$ORACLE_ADDRESS" \
         --source admin \
         --network testnet \
         -- initialize \
         --admin "$ADMIN_ADDRESS" \
-        --oracle_contract "$MOCK_BLEND_POOL" \
-        2>/dev/null || log_warning "Oracle may already be initialized"
+        --oracle_contract "$BLEND_POOL" \
+        2>&1)
+    
+    if [[ $? -ne 0 ]]; then
+        if [[ "$oracle_result" == *"already initialized"* ]]; then
+            log_warning "Oracle Adapter already initialized"
+        else
+            log_error "Failed to initialize Oracle Adapter: ${oracle_result}"
+            exit 1
+        fi
+    else
+        log_success "Oracle Adapter initialized"
+    fi
 
     # 2. Initialize Blend Adapter
     log_info "Initializing Blend Adapter..."
-    stellar contract invoke \
+    local blend_result
+    blend_result=$(stellar contract invoke \
         --id "$BLEND_ADAPTER_ADDRESS" \
         --source admin \
         --network testnet \
         -- initialize \
         --admin "$ADMIN_ADDRESS" \
-        --blend_pool "$MOCK_BLEND_POOL" \
+        --blend_pool "$BLEND_POOL" \
         --oracle "$ORACLE_ADDRESS" \
-        --usdc_token "$USDC_ADDRESS" \
-        2>/dev/null || log_warning "Blend Adapter may already be initialized"
+        --usdc_token usdc \
+        2>&1)
+    
+    if [[ $? -ne 0 ]]; then
+        if [[ "$blend_result" == *"already initialized"* ]]; then
+            log_warning "Blend Adapter already initialized"
+        else
+            log_error "Failed to initialize Blend Adapter: ${blend_result}"
+            exit 1
+        fi
+    else
+        log_success "Blend Adapter initialized"
+    fi
 
     # 3. Initialize Vantis Pool
     log_info "Initializing Vantis Pool..."
-    stellar contract invoke \
+    local pool_result
+    pool_result=$(stellar contract invoke \
         --id "$POOL_ADDRESS" \
         --source admin \
         --network testnet \
         -- initialize \
         --admin "$ADMIN_ADDRESS" \
         --oracle "$ORACLE_ADDRESS" \
-        --usdc_token "$USDC_ADDRESS" \
+        --usdc_token usdc \
         --blend_pool_address "$BLEND_ADAPTER_ADDRESS" \
         --interest_params '{"base_rate":'"${DEFAULT_BASE_RATE}"',"slope1":'"${DEFAULT_SLOPE1}"',"slope2":'"${DEFAULT_SLOPE2}"',"optimal_utilization":'"${DEFAULT_OPTIMAL_UTILIZATION}"'}' \
-        2>/dev/null || log_warning "Vantis Pool may already be initialized"
+        2>&1)
+    
+    if [[ $? -ne 0 ]]; then
+        if [[ "$pool_result" == *"already initialized"* ]]; then
+            log_warning "Vantis Pool already initialized"
+        else
+            log_error "Failed to initialize Vantis Pool: ${pool_result}"
+            exit 1
+        fi
+    else
+        log_success "Vantis Pool initialized"
+    fi
 
     # 4. Initialize Risk Engine
     # Note: Risk Engine initialization requires passing a RiskParameters struct
@@ -255,23 +284,37 @@ configure_contracts() {
     BLEND_ADAPTER_ADDRESS=$(get_deployment_address "blend_adapter")
     POOL_ADDRESS=$(get_deployment_address "vantis_pool")
     RISK_ENGINE_ADDRESS=$(get_deployment_address "risk_engine")
-    XLM_ADDRESS=$(get_deployment_address "token_XLM")
-    USDC_ADDRESS=$(get_deployment_address "token_USDC")
+    
+    # Use native XLM and USDC addresses from Blend pool (from config.sh)
+    XLM_ADDRESS="$XLM_ADDRESS"
+    USDC_ADDRESS="$USDC_ADDRESS"
 
     # Add XLM as supported asset in Oracle
     log_info "Adding XLM to Oracle..."
-    stellar contract invoke \
+    local oracle_asset_result
+    oracle_asset_result=$(stellar contract invoke \
         --id "$ORACLE_ADDRESS" \
         --source admin \
         --network testnet \
         -- add_asset \
         --caller "$ADMIN_ADDRESS" \
         --config '{"symbol":"XLM","contract":"'"${XLM_ADDRESS}"'","decimals":7,"base_ltv":'"${XLM_COLLATERAL_FACTOR}"',"liquidation_threshold":'"${XLM_LIQUIDATION_THRESHOLD}"'}' \
-        2>/dev/null || log_warning "XLM may already be added to Oracle"
+        2>&1)
+    
+    if [[ $? -ne 0 ]]; then
+        if [[ "$oracle_asset_result" == *"already"* ]]; then
+            log_warning "XLM already added to Oracle"
+        else
+            log_error "Failed to add XLM to Oracle: ${oracle_asset_result}"
+        fi
+    else
+        log_success "XLM added to Oracle"
+    fi
 
     # Register XLM in Blend Adapter
     log_info "Registering XLM in Blend Adapter..."
-    stellar contract invoke \
+    local blend_asset_result
+    blend_asset_result=$(stellar contract invoke \
         --id "$BLEND_ADAPTER_ADDRESS" \
         --source admin \
         --network testnet \
@@ -279,33 +322,66 @@ configure_contracts() {
         --caller "$ADMIN_ADDRESS" \
         --asset "$XLM_ADDRESS" \
         --reserve_index 0 \
-        2>/dev/null || log_warning "XLM may already be registered in Blend Adapter"
+        2>&1)
+    
+    if [[ $? -ne 0 ]]; then
+        if [[ "$blend_asset_result" == *"already"* ]]; then
+            log_warning "XLM already registered in Blend Adapter"
+        else
+            log_error "Failed to register XLM in Blend Adapter: ${blend_asset_result}"
+        fi
+    else
+        log_success "XLM registered in Blend Adapter"
+    fi
 
     # Add XLM as collateral asset in Pool
     log_info "Adding XLM as collateral in Pool..."
-    stellar contract invoke \
+    local pool_collateral_result
+    pool_collateral_result=$(stellar contract invoke \
         --id "$POOL_ADDRESS" \
         --source admin \
         --network testnet \
         -- add_collateral_asset \
         --caller "$ADMIN_ADDRESS" \
         --config '{"token":"'"${XLM_ADDRESS}"'","symbol":"XLM","collateral_factor":'"${XLM_COLLATERAL_FACTOR}"',"liquidation_threshold":'"${XLM_LIQUIDATION_THRESHOLD}"',"liquidation_penalty":'"${XLM_LIQUIDATION_PENALTY}"',"is_active":true}' \
-        2>/dev/null || log_warning "XLM may already be added as collateral"
+        2>&1)
+    
+    if [[ $? -ne 0 ]]; then
+        if [[ "$pool_collateral_result" == *"already"* ]]; then
+            log_warning "XLM already added as collateral in Pool"
+        else
+            log_error "Failed to add XLM as collateral in Pool: ${pool_collateral_result}"
+        fi
+    else
+        log_success "XLM added as collateral in Pool"
+    fi
 
     # Link Risk Engine to Pool
     log_info "Linking Risk Engine to Pool..."
-    stellar contract invoke \
+    local risk_engine_result
+    risk_engine_result=$(stellar contract invoke \
         --id "$POOL_ADDRESS" \
         --source admin \
         --network testnet \
         -- set_risk_engine \
         --caller "$ADMIN_ADDRESS" \
         --risk_engine "$RISK_ENGINE_ADDRESS" \
-        2>/dev/null || log_warning "Risk Engine may already be linked"
+        2>&1)
+    
+    if [[ $? -ne 0 ]]; then
+        if [[ "$risk_engine_result" == *"already"* ]]; then
+            log_warning "Risk Engine already linked to Pool"
+        else
+            log_error "Failed to link Risk Engine to Pool: ${risk_engine_result}"
+        fi
+    else
+        log_success "Risk Engine linked to Pool"
+    fi
 
     # Set initial XLM price in Oracle
     log_info "Setting initial XLM price..."
-    stellar contract invoke \
+    local price_result
+    price_result=$(stellar contract invoke \
         --id "$ORACLE_ADDRESS" \
         --source admin \
         --network testnet \
@@ -313,10 +389,67 @@ configure_contracts() {
         --caller "$ADMIN_ADDRESS" \
         --asset XLM \
         --price "$TEST_PRICE_XLM" \
-        2>/dev/null || log_warning "Price update may have failed"
+        2>&1)
+    
+    if [[ $? -ne 0 ]]; then
+        log_error "Failed to set XLM price: ${price_result}"
+    else
+        log_success "XLM price set"
+    fi
 
     log_success "Contracts configured"
 }
+
+# =============================================================================
+# Validate Admin Key
+# =============================================================================
+
+validate_admin_key() {
+    local expected_admin=$1
+
+    log_step "Validating admin key..."
+
+    # Get the admin key from the keys file
+    local keys_file="${DEPLOYMENTS_DIR}/admin_keys.json"
+
+    if [[ ! -f "$keys_file" ]]; then
+        log_error "Admin keys file not found: ${keys_file}"
+        exit 1
+    fi
+
+    local stored_admin=$(jq -r '.public_key // empty' "$keys_file")
+
+    if [[ -z "$stored_admin" ]]; then
+        log_error "Admin public key not found in keys file"
+        exit 1
+    fi
+
+    if [[ "$stored_admin" != "$expected_admin" ]]; then
+        log_error "Admin key mismatch!"
+        log_error "  Expected: ${expected_admin}"
+        log_error "  Stored:   ${stored_admin}"
+        exit 1
+    fi
+
+    # Verify the key exists in stellar CLI, add it if missing
+    if ! stellar keys address admin &>/dev/null; then
+        log_warning "Admin key not found in Stellar CLI, adding it..."
+        local stored_secret=$(jq -r '.secret_key // empty' "$keys_file")
+        if [[ -z "$stored_secret" ]]; then
+            log_error "Admin secret key not found in keys file"
+            exit 1
+        fi
+        stellar keys add admin "$stored_secret" --network testnet
+        if ! stellar keys address admin &>/dev/null; then
+            log_error "Failed to add admin key to Stellar CLI"
+            exit 1
+        fi
+        log_success "Admin key added to Stellar CLI"
+    fi
+
+    log_success "Admin key validated: ${stored_admin}"
+}
+
 
 # =============================================================================
 # Print Deployment Summary
@@ -343,13 +476,14 @@ print_deployment_summary() {
         echo -e "${BLUE}Vantis Pool:${NC}        $(get_deployment_address 'vantis_pool')"
         echo -e "${BLUE}Risk Engine:${NC}        $(get_deployment_address 'risk_engine')"
         echo -e "${BLUE}Borrow Limit Policy:${NC} $(get_deployment_address 'borrow_limit_policy')"
-        echo ""
-        echo -e "${BLUE}XLM Token:${NC}          $(get_deployment_address 'token_XLM')"
-        echo -e "${BLUE}USDC Token:${NC}         $(get_deployment_address 'token_USDC')"
     fi
 
     echo ""
     echo "──────────────────────────────────────────────────────────────────────"
+    echo -e "${CYAN}Native Token Addresses (from Blend pool):${NC}"
+    echo -e "${BLUE}XLM Address:${NC}         ${XLM_ADDRESS}"
+    echo -e "${BLUE}USDC Address:${NC}        ${USDC_ADDRESS}"
+    echo ""
     echo -e "${CYAN}Deployment file:${NC} ${DEPLOYMENT_FILE}"
     echo ""
     log_success "Deployment complete!"
