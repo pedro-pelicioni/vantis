@@ -8,6 +8,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Ionicons} from '@expo/vector-icons';
 import {useTheme} from '../theme/ThemeContext';
 import {useWallet} from '../contexts/WalletContext';
@@ -21,6 +22,7 @@ export const ActivityScreen: React.FC = () => {
   const {account, transactions, loadTransactions, isLoading} = useWallet();
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'payment' | 'credit' | 'installment'>('all');
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     loadTransactions();
@@ -78,7 +80,7 @@ export const ActivityScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, {backgroundColor: themeColors.bgPrimary}]}>
-      <View style={styles.header}>
+      <View style={[styles.header, {paddingTop: insets.top}]}>
         <Text style={[styles.title, {color: themeColors.textPrimary}]}>
           Activity
         </Text>

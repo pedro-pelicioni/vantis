@@ -22,7 +22,14 @@ export const HomeScreen: React.FC = () => {
   const {colors: themeColors} = useTheme();
   const {account, isConnected, refreshAccount, loadTransactions, isLoading} = useWallet();
   const [refreshing, setRefreshing] = useState(false);
+  const [balanceVisible, setBalanceVisible] = useState(true);
   const insets = useSafeAreaInsets();
+
+  // Convert XLM to USD (mock rate: 1 XLM = 0.10 USD)
+  const xlmToUsd = (xlm: string): string => {
+    const xlmAmount = parseFloat(xlm) || 0;
+    return (xlmAmount * 0.10).toFixed(2);
+  };
 
   useEffect(() => {
     if (isConnected) {
@@ -48,7 +55,7 @@ export const HomeScreen: React.FC = () => {
         <View style={styles.emptyState}>
           <Ionicons name="wallet-outline" size={64} color={themeColors.textSecondary} />
           <Text style={[styles.emptyText, {color: themeColors.textPrimary}]}>
-            Connect your wallet to get started
+            invest your assets and pay later
           </Text>
           <TouchableOpacity
             style={[styles.connectButton, {backgroundColor: colors.accentTeal}]}
@@ -66,7 +73,7 @@ export const HomeScreen: React.FC = () => {
   return (
     <View style={[styles.container, {backgroundColor: themeColors.bgPrimary}]}>
       <StatusBar />
-      <Header showMenu={true} />
+      <Header showMenu={true} onBalanceToggle={() => setBalanceVisible(!balanceVisible)} />
 
       <ScrollView
         style={styles.content}
@@ -75,151 +82,57 @@ export const HomeScreen: React.FC = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }>
         <View style={styles.portfolioSection}>
-          <Text style={[styles.portfolioLink, {color: themeColors.textSecondary}]}>
-            Your portfolio >
-          </Text>
           <Text style={[styles.balance, {color: themeColors.textPrimary}]}>
-            {account?.balance || '0.00'} XLM
+            {balanceVisible 
+              ? `$${xlmToUsd(account?.balance || '0.00')} USD`
+              : '••••••'}
           </Text>
+          {account?.balance && (
+            <Text style={[styles.balanceSubtext, {color: themeColors.textSecondary}]}>
+              {balanceVisible ? `${account.balance} XLM` : ''}
+            </Text>
+          )}
         </View>
 
         <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={[
-              styles.btn,
-              styles.btnPrimary,
-              {
-                backgroundColor: colors.accentTeal,
-              },
-            ]}
-            onPress={() => navigation.navigate('Payment' as never)}
-            activeOpacity={0.8}>
-            <Ionicons name="card" size={20} color={themeColors.bgPrimary} />
-            <Text
+          <View style={styles.sendReceiveButtons}>
+            <TouchableOpacity
               style={[
-                styles.btnText,
+                styles.btn,
+                styles.btnSecondary,
                 {
-                  color: themeColors.bgPrimary,
+                  backgroundColor: themeColors.bgCard,
+                  borderColor: themeColors.borderColor,
                 },
-              ]}>
-              Make Payment
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.btn,
-              styles.btnSecondary,
-              {
-                backgroundColor: themeColors.bgCard,
-                borderColor: themeColors.borderColor,
-              },
-            ]}
-            onPress={() => navigation.navigate('Transfer' as never)}
-            activeOpacity={0.8}>
-            <Ionicons name="send" size={20} color={themeColors.textPrimary} />
-            <Text style={[styles.btnText, {color: themeColors.textPrimary}]}>
-              Send
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.cardsGrid}>
-          <View
-            style={[
-              styles.card,
-              styles.gettingStartedCard,
-              {
-                backgroundColor: themeColors.bgCard,
-              },
-            ]}>
-            <View style={styles.cardHeader}>
-              <Text
-                style={[
-                  styles.cardTitle,
-                  {
-                    color: colors.accentTeal,
-                  },
-                ]}>
-                Getting Started
+              ]}
+              onPress={() => navigation.navigate('Transfer' as never)}
+              activeOpacity={0.8}>
+              <Ionicons name="send" size={20} color={themeColors.textPrimary} />
+              <Text style={[styles.btnText, {color: themeColors.textPrimary}]}>
+                Send
               </Text>
-              <TouchableOpacity>
-                <Text
-                  style={[
-                    styles.cardLink,
-                    {
-                      color: colors.accentTeal,
-                    },
-                  ]}>
-                  View all steps >
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.stepItem}>
-              <Ionicons name="person" size={24} color={colors.accentTeal} />
-              <Text style={[styles.stepText, {color: themeColors.textPrimary}]}>
-                Add funds to account
-              </Text>
-            </View>
-
-            <View style={styles.progressBar}>
-              <View
-                style={[
-                  styles.progressFill,
-                  {
-                    backgroundColor: colors.accentTeal,
-                  },
-                ]}
-              />
-              <View
-                style={[
-                  styles.progressEmpty,
-                  {
-                    backgroundColor: themeColors.shadowColor,
-                  },
-                ]}
-              />
-              <View
-                style={[
-                  styles.progressEmpty,
-                  {
-                    backgroundColor: themeColors.shadowColor,
-                  },
-                ]}
-              />
-            </View>
-
-            <Text
-              style={[
-                styles.progressText,
-                {
-                  color: themeColors.textSecondary,
-                },
-              ]}>
-              1/3
-            </Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={[
-                styles.stepButton,
+                styles.btn,
+                styles.btnSecondary,
                 {
-                  backgroundColor: colors.accentTeal,
+                  backgroundColor: themeColors.bgCard,
+                  borderColor: themeColors.borderColor,
                 },
               ]}
+              onPress={() => navigation.navigate('Receive' as never)}
               activeOpacity={0.8}>
-              <Text
-                style={[
-                  styles.stepButtonText,
-                  {
-                    color: themeColors.bgPrimary,
-                  },
-                ]}>
-                →
+              <Ionicons name="download" size={20} color={themeColors.textPrimary} />
+              <Text style={[styles.btnText, {color: themeColors.textPrimary}]}>
+                Receive
               </Text>
             </TouchableOpacity>
           </View>
+        </View>
 
+        <View style={styles.cardsGrid}>
           <View
             style={[
               styles.card,
@@ -347,9 +260,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   actionButtons: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     gap: spacing.sm,
     marginBottom: spacing.lg,
+  },
+  sendReceiveButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
   },
   btn: {
     flex: 1,
@@ -463,11 +380,6 @@ const styles = StyleSheet.create({
   stepButtonText: {
     fontSize: 20,
   },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing.md,
-  },
   emptyStateText: {
     fontSize: 16,
     fontWeight: '600',
@@ -488,6 +400,10 @@ const styles = StyleSheet.create({
   },
   footerLink: {
     textDecorationLine: 'underline',
+  },
+  balanceSubtext: {
+    fontSize: 16,
+    marginTop: spacing.xs,
   },
 });
 

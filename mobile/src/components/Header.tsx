@@ -11,11 +11,13 @@ import {spacing} from '../theme/colors';
 interface HeaderProps {
   walletAddress?: string;
   showMenu?: boolean;
+  onBalanceToggle?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   walletAddress,
   showMenu = false,
+  onBalanceToggle,
 }) => {
   const navigation = useNavigation();
   const {colors: themeColors} = useTheme();
@@ -47,8 +49,12 @@ export const Header: React.FC<HeaderProps> = ({
       </Text>
       <View style={styles.actions}>
         <ThemeToggle />
-        <TouchableOpacity>
-          <Ionicons name="eye" size={20} color={themeColors.textPrimary} />
+        <TouchableOpacity onPress={onBalanceToggle}>
+          <Ionicons 
+            name="eye" 
+            size={20} 
+            color={themeColors.textPrimary} 
+          />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate('Settings' as never)}>
           <Ionicons name="settings" size={20} color={themeColors.textPrimary} />

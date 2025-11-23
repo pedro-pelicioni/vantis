@@ -1,6 +1,7 @@
 import React from 'react';
 import {View, Text, TouchableOpacity, StyleSheet, ScrollView} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Ionicons} from '@expo/vector-icons';
 import {useTheme} from '../theme/ThemeContext';
 import {useWallet} from '../contexts/WalletContext';
@@ -12,12 +13,13 @@ export const CardScreen: React.FC = () => {
   const navigation = useNavigation();
   const {colors: themeColors} = useTheme();
   const {account, isConnected} = useWallet();
+  const insets = useSafeAreaInsets();
 
   if (!isConnected) {
     return (
       <View style={[styles.container, {backgroundColor: themeColors.bgPrimary}]}>
         <StatusBar />
-        <View style={styles.header}>
+        <View style={[styles.header, {paddingTop: insets.top}]}>
           <Text style={[styles.headerTitle, {color: themeColors.textPrimary}]}>
             Card
           </Text>

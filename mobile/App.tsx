@@ -17,6 +17,7 @@ import {CardVisualScreen} from './src/screens/CardVisualScreen';
 import {PayModeScreen} from './src/screens/PayModeScreen';
 import {PaymentScreen} from './src/screens/PaymentScreen';
 import {TransferScreen} from './src/screens/TransferScreen';
+import {ReceiveScreen} from './src/screens/ReceiveScreen';
 import {CreditDashboardScreen} from './src/screens/CreditDashboardScreen';
 import {DeFiScreen} from './src/screens/DeFiScreen';
 import {ActivityScreen} from './src/screens/ActivityScreen';
@@ -77,6 +78,7 @@ const AppNavigator = () => {
         <Stack.Screen name="CardVisual" component={CardVisualScreen} />
         <Stack.Screen name="Payment" component={PaymentScreen} />
         <Stack.Screen name="Transfer" component={TransferScreen} />
+        <Stack.Screen name="Receive" component={ReceiveScreen} />
         <Stack.Screen name="CreditDashboard" component={CreditDashboardScreen} />
       </Stack.Navigator>
     </NavigationContainer>

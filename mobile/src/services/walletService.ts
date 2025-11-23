@@ -27,6 +27,7 @@ export interface WalletAccount {
   secretKey?: string; // Only stored encrypted
   balance: string;
   assets: AssetBalance[];
+  cardNumber?: string; // Virtual card number
 }
 
 export interface AssetBalance {
@@ -63,6 +64,17 @@ class WalletService {
     // Use backend API or fetch directly in production
   }
 
+  // Generate card number (full 16 digits)
+  private generateCardNumber(): string {
+    // Generate 16 random digits
+    let cardNumber = '';
+    for (let i = 0; i < 16; i++) {
+      cardNumber += Math.floor(Math.random() * 10).toString();
+    }
+    // Format as XXXX XXXX XXXX XXXX
+    return `${cardNumber.substring(0, 4)} ${cardNumber.substring(4, 8)} ${cardNumber.substring(8, 12)} ${cardNumber.substring(12, 16)}`;
+  }
+
   // Generate new wallet
   async generateWallet(): Promise<{publicKey: string; secretKey: string}> {
     // In production, use proper crypto libraries compatible with React Native
@@ -90,10 +102,20 @@ class WalletService {
         },
       ];
 
+      // Get or generate card number
+      const savedCardNumber = await AsyncStorage.getItem(`card_number_${publicKey}`);
+      // If saved number has asterisks (old format), regenerate it
+      let cardNumber = savedCardNumber;
+      if (!cardNumber || cardNumber.includes('****')) {
+        cardNumber = this.generateCardNumber();
+        await AsyncStorage.setItem(`card_number_${publicKey}`, cardNumber);
+      }
+
       const walletAccount: WalletAccount = {
         publicKey: publicKey,
         balance: '1000.00',
         assets: balances,
+        cardNumber: cardNumber,
       };
 
       this.currentAccount = walletAccount;

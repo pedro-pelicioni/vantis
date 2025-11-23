@@ -3,6 +3,7 @@ import {View, Text, TouchableOpacity, StyleSheet, Platform} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import {useTheme} from '../theme/ThemeContext';
 import {ThemeToggle} from './ThemeToggle';
+import {VantisLogo} from './VantisLogo';
 import {spacing, borderRadius} from '../theme/colors';
 
 type NavItem = {
@@ -55,15 +56,7 @@ export const Sidebar: React.FC = () => {
         },
       ]}>
       <View style={styles.header}>
-        <Text
-          style={[
-            styles.logo,
-            {
-              color: colors.accentTeal,
-            },
-          ]}>
-          Vantis
-        </Text>
+        <VantisLogo size="medium" variant="light" showText={true} />
       </View>
 
       <View style={styles.nav}>

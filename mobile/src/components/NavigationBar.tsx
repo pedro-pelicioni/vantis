@@ -49,8 +49,46 @@ export const NavigationBar: React.FC<BottomTabBarProps> = ({state, descriptors, 
           paddingBottom: insets.bottom,
         },
       ]}>
-      {navItems.map(item => {
+      {navItems.map((item, index) => {
         const isActive = currentRoute === item.route;
+        const isPayButton = item.name === 'pay-mode';
+        
+        if (isPayButton) {
+          // Special highlighted button for Pay (center button) - navigates to Payment screen
+          return (
+            <TouchableOpacity
+              key={item.name}
+              style={styles.payButtonContainer}
+              onPress={() => navigation.navigate('Payment' as never)}
+              activeOpacity={0.8}>
+              <View
+                style={[
+                  styles.payButton,
+                  {
+                    backgroundColor: colors.accentTeal,
+                    shadowColor: colors.accentTeal,
+                  },
+                ]}>
+                <Ionicons
+                  name={item.icon}
+                  size={28}
+                  color="#FFFFFF"
+                />
+              </View>
+              <Text
+                style={[
+                  styles.payLabel,
+                  {
+                    color: themeColors.textPrimary,
+                  },
+                ]}>
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        }
+        
+        // Regular navigation items
         return (
           <TouchableOpacity
             key={item.name}
@@ -60,13 +98,13 @@ export const NavigationBar: React.FC<BottomTabBarProps> = ({state, descriptors, 
             <Ionicons
               name={item.icon}
               size={24}
-              color={isActive ? colors.accentTeal : themeColors.textPrimary}
+              color={isActive ? colors.accentTeal : themeColors.textSecondary}
             />
             <Text
               style={[
                 styles.navLabel,
                 {
-                  color: isActive ? colors.accentTeal : themeColors.textPrimary,
+                  color: isActive ? colors.accentTeal : themeColors.textSecondary,
                 },
               ]}>
               {item.label}
@@ -95,10 +133,34 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'center',
     gap: 4,
-    opacity: 0.6,
+    flex: 1,
   },
   navLabel: {
     fontSize: 12,
+    fontWeight: '500',
+  },
+  payButtonContainer: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 4,
+    flex: 1,
+    marginTop: -spacing.md, // Lift the button up
+  },
+  payButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  payLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 2,
   },
 });
 
