@@ -14,6 +14,28 @@ const {width} = Dimensions.get('window');
 const CARD_WIDTH = width - spacing.xl * 2;
 const CARD_HEIGHT = CARD_WIDTH * 0.63; // Standard credit card ratio
 
+// Helper function to mask card number: shows only first 4 and last 4 digits
+const maskCardNumber = (cardNumber: string | undefined): string => {
+  if (!cardNumber || cardNumber.trim() === '' || cardNumber === '**** **** **** ****') {
+    return '**** **** **** ****';
+  }
+  
+  // Remove ALL spaces, dashes, and any non-digit characters
+  const digits = cardNumber.replace(/[\s\-]/g, '').replace(/\D/g, '');
+  
+  // Must have exactly 16 digits
+  if (digits.length !== 16) {
+    return '**** **** **** ****';
+  }
+  
+  // Extract first 4 and last 4 digits
+  const first4 = digits.substring(0, 4);
+  const last4 = digits.substring(12, 16);
+  
+  // ALWAYS return masked format: "1234 **** **** 5678"
+  return `${first4} **** **** ${last4}`;
+};
+
 export const CardVisualScreen: React.FC = () => {
   const navigation = useNavigation();
   const {colors: themeColors, isDark} = useTheme();
@@ -24,7 +46,28 @@ export const CardVisualScreen: React.FC = () => {
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [showVirtualCardModal, setShowVirtualCardModal] = useState(false);
 
-  const cardNumber = account?.cardNumber || '**** **** **** ****';
+  // Get masked card number for display on card
+  const maskedCardNumber = maskCardNumber(account?.cardNumber);
+  
+  // Format full card number for modal (complete, with spaces)
+  const formatFullCardNumber = (cardNumber: string | undefined): string => {
+    if (!cardNumber || cardNumber === '**** **** **** ****') {
+      return '**** **** **** ****';
+    }
+    
+    // Remove all spaces and non-digit characters
+    const digitsOnly = cardNumber.replace(/\D/g, '');
+    
+    // Must have exactly 16 digits
+    if (digitsOnly.length !== 16) {
+      return cardNumber; // Return as is if invalid
+    }
+    
+    // Format with spaces: "1234 5678 9012 3456"
+    return `${digitsOnly.substring(0, 4)} ${digitsOnly.substring(4, 8)} ${digitsOnly.substring(8, 12)} ${digitsOnly.substring(12, 16)}`;
+  };
+  
+  const fullCardNumber = formatFullCardNumber(account?.cardNumber);
   const cvv = '123';
   const expiryDate = '12/28';
   const cardholderName = account?.publicKey ? 'SELF-CUSTODIAL' : 'YOUR NAME';
@@ -87,7 +130,7 @@ export const CardVisualScreen: React.FC = () => {
           </View>
 
           <View style={styles.cardNumberContainer}>
-            <Text style={styles.cardNumber}>{cardNumber}</Text>
+            <Text style={styles.cardNumber}>{maskedCardNumber}</Text>
           </View>
 
           <View style={styles.cardMiddle}>
@@ -161,7 +204,7 @@ export const CardVisualScreen: React.FC = () => {
                   Card Number
                 </Text>
                 <Text style={[styles.detailValue, {color: themeColors.textPrimary}]}>
-                  {cardNumber}
+                  {fullCardNumber}
                 </Text>
               </View>
               
@@ -315,13 +358,16 @@ const styles = StyleSheet.create({
   },
   cardNumberContainer: {
     marginVertical: spacing.lg,
+    width: '100%',
+    flexDirection: 'row',
   },
   cardNumber: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
-    letterSpacing: 4,
+    letterSpacing: 2,
     fontFamily: 'monospace',
+    flexWrap: 'nowrap',
   },
   cardMiddle: {
     flexDirection: 'row',

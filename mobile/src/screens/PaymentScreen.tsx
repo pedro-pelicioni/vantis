@@ -303,13 +303,16 @@ const styles = StyleSheet.create({
   },
   cardNumberContainer: {
     marginVertical: spacing.lg,
+    width: '100%',
+    flexDirection: 'row',
   },
   cardNumberText: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
-    letterSpacing: 4,
+    letterSpacing: 2,
     fontFamily: 'monospace',
+    flexWrap: 'nowrap',
   },
   cardFooter: {
     flexDirection: 'row',
