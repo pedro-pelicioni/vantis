@@ -1,4 +1,4 @@
-import React, {useState, useMemo} from 'react';
+import React, {useState} from 'react';
 import {View, Text, StyleSheet, Dimensions, ScrollView, TouchableOpacity, Alert, Modal} from 'react-native';
 import {LinearGradient} from 'expo-linear-gradient';
 import {Ionicons} from '@expo/vector-icons';
@@ -14,42 +14,6 @@ const {width} = Dimensions.get('window');
 const CARD_WIDTH = width - spacing.xl * 2;
 const CARD_HEIGHT = CARD_WIDTH * 0.63; // Standard credit card ratio
 
-// Helper function to mask card number: shows only first 4 and last 4 digits
-// This function MUST always return a masked format - NEVER the full number
-const maskCardNumber = (cardNumber: string | undefined): string => {
-  // If no card number provided, return masked placeholder
-  if (!cardNumber) {
-    return '**** **** **** ****';
-  }
-  
-  // Trim whitespace
-  const trimmed = cardNumber.trim();
-  
-  // If already masked or empty, return masked placeholder
-  if (trimmed === '' || trimmed === '**** **** **** ****' || trimmed.includes('****')) {
-    return '**** **** **** ****';
-  }
-  
-  // Remove ALL spaces, dashes, and any non-digit characters
-  // This ensures we only work with digits
-  const digits = trimmed.replace(/[\s\-]/g, '').replace(/\D/g, '');
-  
-  // Must have exactly 16 digits to be valid
-  if (digits.length !== 16) {
-    console.warn('Invalid card number length:', digits.length, 'from:', cardNumber);
-    return '**** **** **** ****';
-  }
-  
-  // Extract first 4 and last 4 digits
-  const first4 = digits.substring(0, 4);
-  const last4 = digits.substring(12, 16);
-  
-  // ALWAYS return masked format: "1234 **** **** 5678"
-  // This is the ONLY format that should appear on the card visual
-  const masked = `${first4} **** **** ${last4}`;
-  return masked;
-};
-
 export const CardVisualScreen: React.FC = () => {
   const navigation = useNavigation();
   const {colors: themeColors, isDark} = useTheme();
@@ -60,36 +24,7 @@ export const CardVisualScreen: React.FC = () => {
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [showVirtualCardModal, setShowVirtualCardModal] = useState(false);
 
-  // Get full card number (complete, for modal display)
-  const fullCardNumber = account?.cardNumber || '**** **** **** ****';
-  
-  // Masked card number for display on card - ALWAYS use this for the card visual
-  const maskedCardNumber = useMemo(() => {
-    const masked = maskCardNumber(account?.cardNumber);
-    console.log('Card number masking:', {
-      original: account?.cardNumber,
-      masked: masked,
-    });
-    return masked;
-  }, [account?.cardNumber]);
-  
-  // Format full card number for modal (complete, with spaces)
-  const displayFullCardNumber = useMemo(() => {
-    if (!fullCardNumber || fullCardNumber === '**** **** **** ****') {
-      return '**** **** **** ****';
-    }
-    
-    // Remove all spaces and non-digit characters
-    const digitsOnly = fullCardNumber.replace(/\D/g, '');
-    
-    // Must have exactly 16 digits
-    if (digitsOnly.length !== 16) {
-      return fullCardNumber; // Return as is if invalid
-    }
-    
-    // Format with spaces: "1234 5678 9012 3456"
-    return `${digitsOnly.substring(0, 4)} ${digitsOnly.substring(4, 8)} ${digitsOnly.substring(8, 12)} ${digitsOnly.substring(12, 16)}`;
-  }, [fullCardNumber]);
+  const cardNumber = account?.cardNumber || '**** **** **** ****';
   const cvv = '123';
   const expiryDate = '12/28';
   const cardholderName = account?.publicKey ? 'SELF-CUSTODIAL' : 'YOUR NAME';
@@ -152,11 +87,7 @@ export const CardVisualScreen: React.FC = () => {
           </View>
 
           <View style={styles.cardNumberContainer}>
-            <Text 
-              style={styles.cardNumber} 
-              testID="card-number-display">
-              {maskedCardNumber}
-            </Text>
+            <Text style={styles.cardNumber}>{cardNumber}</Text>
           </View>
 
           <View style={styles.cardMiddle}>
@@ -230,7 +161,7 @@ export const CardVisualScreen: React.FC = () => {
                   Card Number
                 </Text>
                 <Text style={[styles.detailValue, {color: themeColors.textPrimary}]}>
-                  {displayFullCardNumber}
+                  {cardNumber}
                 </Text>
               </View>
               

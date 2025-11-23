@@ -23,21 +23,11 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#050505"
       },
-      "package": "com.vantis.mobile",
-      "permissions": [
-        "CAMERA",
-        "USE_BIOMETRIC",
-        "USE_FINGERPRINT"
-      ]
+      "package": "com.vantis.mobile"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "scheme": "vantis",
-    "extra": {
-      "eas": {
-        "projectId": ""
-      }
-    }
+    "scheme": "vantis"
   }
 }

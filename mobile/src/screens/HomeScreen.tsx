@@ -95,44 +95,41 @@ export const HomeScreen: React.FC = () => {
         </View>
 
         <View style={styles.actionButtons}>
-          <TouchableOpacity
-            style={[
-              styles.btn,
-              styles.btnPrimary,
-              {
-                backgroundColor: colors.accentTeal,
-              },
-            ]}
-            onPress={() => navigation.navigate('Payment' as never)}
-            activeOpacity={0.8}>
-            <Ionicons name="card" size={20} color={themeColors.bgPrimary} />
-            <Text
+          <View style={styles.sendReceiveButtons}>
+            <TouchableOpacity
               style={[
-                styles.btnText,
+                styles.btn,
+                styles.btnSecondary,
                 {
-                  color: themeColors.bgPrimary,
+                  backgroundColor: themeColors.bgCard,
+                  borderColor: themeColors.borderColor,
                 },
-              ]}>
-              Make Payment
-            </Text>
-          </TouchableOpacity>
+              ]}
+              onPress={() => navigation.navigate('Transfer' as never)}
+              activeOpacity={0.8}>
+              <Ionicons name="send" size={20} color={themeColors.textPrimary} />
+              <Text style={[styles.btnText, {color: themeColors.textPrimary}]}>
+                Send
+              </Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.btn,
-              styles.btnSecondary,
-              {
-                backgroundColor: themeColors.bgCard,
-                borderColor: themeColors.borderColor,
-              },
-            ]}
-            onPress={() => navigation.navigate('Transfer' as never)}
-            activeOpacity={0.8}>
-            <Ionicons name="send" size={20} color={themeColors.textPrimary} />
-            <Text style={[styles.btnText, {color: themeColors.textPrimary}]}>
-              Send
-            </Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.btn,
+                styles.btnSecondary,
+                {
+                  backgroundColor: themeColors.bgCard,
+                  borderColor: themeColors.borderColor,
+                },
+              ]}
+              onPress={() => navigation.navigate('Receive' as never)}
+              activeOpacity={0.8}>
+              <Ionicons name="download" size={20} color={themeColors.textPrimary} />
+              <Text style={[styles.btnText, {color: themeColors.textPrimary}]}>
+                Receive
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.cardsGrid}>
@@ -263,9 +260,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   actionButtons: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     gap: spacing.sm,
     marginBottom: spacing.lg,
+  },
+  sendReceiveButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
   },
   btn: {
     flex: 1,

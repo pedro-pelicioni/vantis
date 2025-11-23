@@ -1,19 +1,19 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
-  TextInput,
   Alert,
+  Dimensions,
+  Animated,
 } from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Ionicons} from '@expo/vector-icons';
-import {useTheme} from '../theme/ThemeContext';
+import {LinearGradient} from 'expo-linear-gradient';
 import {useWallet} from '../contexts/WalletContext';
-import {LoadingSpinner} from '../components/LoadingSpinner';
+import {VantisLogo} from '../components/VantisLogo';
 import {spacing, borderRadius, colors} from '../theme/colors';
 
 interface PaymentScreenParams {
@@ -25,317 +25,353 @@ export const PaymentScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const params = (route.params as PaymentScreenParams) || {};
-  const {colors: themeColors} = useTheme();
   const {account} = useWallet();
-  const [amount, setAmount] = useState(params.amount || '');
-  const [merchant, setMerchant] = useState(params.merchant || '');
+  const [amount] = useState(params.amount || '100.00');
   const insets = useSafeAreaInsets();
-  const [installments, setInstallments] = useState(1);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [installments] = useState(1);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [cardAnimation] = useState(new Animated.Value(0));
+  const [successAnimation] = useState(new Animated.Value(0));
+  const [checkmarkAnimation] = useState(new Animated.Value(0));
 
-  const installmentOptions = [1, 2, 3, 4, 5, 6, 10, 12];
   const installmentAmount = amount ? (parseFloat(amount) / installments).toFixed(2) : '0.00';
+  
+  const {width} = Dimensions.get('window');
+  const CARD_WIDTH = width - spacing.xl * 2;
+  const CARD_HEIGHT = CARD_WIDTH * 0.63;
 
-  const handlePayment = async () => {
-    if (!amount || parseFloat(amount) <= 0) {
-      Alert.alert('Error', 'Please enter a valid amount');
-      return;
-    }
-
-    if (!account) {
-      Alert.alert('Error', 'No wallet connected');
-      return;
-    }
-
+  const processPayment = async () => {
     try {
-      setIsProcessing(true);
+      // Go directly to success screen
+      setShowSuccess(true);
       
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Animate success screen
+      Animated.sequence([
+        Animated.timing(successAnimation, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(checkmarkAnimation, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+      ]).start();
       
-      Alert.alert(
-        'Payment Scheduled',
-        `Payment of ${amount} ${installments > 1 ? `split into ${installments} installments` : ''} has been scheduled.\n\nFirst installment: ${installmentAmount}`,
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
-          },
-        ],
-      );
+      // Auto-close after 3 seconds
+      setTimeout(() => {
+        navigation.goBack();
+      }, 3000);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Payment failed');
-    } finally {
-      setIsProcessing(false);
     }
   };
 
-  if (isProcessing) {
-    return <LoadingSpinner fullScreen />;
-  }
+  useEffect(() => {
+    // Animate card appearance
+    Animated.timing(cardAnimation, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
 
-  return (
-    <ScrollView
-      style={[styles.container, {backgroundColor: themeColors.bgPrimary}]}>
-      <View style={styles.content}>
-        <View style={[styles.header, {paddingTop: insets.top}]}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={themeColors.textPrimary} />
-          </TouchableOpacity>
-          <Text style={[styles.title, {color: themeColors.textPrimary}]}>
-            Make Payment
-          </Text>
-        </View>
+    // Auto-process payment after showing card for 3 seconds
+    const timer = setTimeout(() => {
+      processPayment();
+    }, 3000);
 
-        <View
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (showSuccess) {
+    const checkmarkScale = checkmarkAnimation.interpolate({
+      inputRange: [0, 0.5, 1],
+      outputRange: [0, 1.2, 1],
+    });
+
+    const checkmarkOpacity = checkmarkAnimation.interpolate({
+      inputRange: [0, 0.5, 1],
+      outputRange: [0, 1, 1],
+    });
+
+    return (
+      <View style={styles.successContainer}>
+        <Animated.View
           style={[
-            styles.paymentCard,
+            styles.successContent,
             {
-              backgroundColor: themeColors.bgCard,
-              borderColor: themeColors.borderColor,
+              opacity: successAnimation,
+              transform: [
+                {
+                  scale: successAnimation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.8, 1],
+                  }),
+                },
+              ],
             },
           ]}>
-          <View style={styles.merchantSection}>
-            <Ionicons name="storefront" size={32} color={colors.accentTeal} />
-            <Text style={[styles.merchantName, {color: themeColors.textPrimary}]}>
-              {merchant || 'Merchant Name'}
-            </Text>
-          </View>
-
-          <View style={styles.amountSection}>
-            <Text style={[styles.amountLabel, {color: themeColors.textSecondary}]}>
-              Total Amount
-            </Text>
-            <TextInput
-              style={[
-                styles.amountInput,
-                {
-                  color: themeColors.textPrimary,
-                },
-              ]}
-              placeholder="0.00"
-              placeholderTextColor={themeColors.textSecondary}
-              value={amount}
-              onChangeText={setAmount}
-              keyboardType="decimal-pad"
-            />
-          </View>
-        </View>
-
-        <View style={styles.installmentsSection}>
-          <Text style={[styles.sectionTitle, {color: themeColors.textPrimary}]}>
-            Choose Installments
-          </Text>
-          <Text style={[styles.sectionSubtitle, {color: themeColors.textSecondary}]}>
-            Pay in {installments} {installments === 1 ? 'payment' : 'payments'} of{' '}
-            {installmentAmount}
-          </Text>
-
-          <View style={styles.installmentOptions}>
-            {installmentOptions.map(option => (
-              <TouchableOpacity
-                key={option}
-                style={[
-                  styles.installmentOption,
-                  {
-                    backgroundColor:
-                      installments === option
-                        ? colors.accentTeal
-                        : themeColors.bgCard,
-                    borderColor:
-                      installments === option
-                        ? colors.accentTeal
-                        : themeColors.borderColor,
-                  },
-                ]}
-                onPress={() => setInstallments(option)}
-                activeOpacity={0.7}>
-                <Text
-                  style={[
-                    styles.installmentText,
-                    {
-                      color:
-                        installments === option
-                          ? themeColors.bgPrimary
-                          : themeColors.textPrimary,
-                    },
-                  ]}>
-                  {option}x
-                </Text>
-                {installments === option && (
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={20}
-                    color={themeColors.bgPrimary}
-                  />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {installments > 1 && (
-          <View
+          <Animated.View
             style={[
-              styles.installmentInfo,
+              styles.checkmarkContainer,
               {
-                backgroundColor: themeColors.bgCard,
-                borderColor: themeColors.borderColor,
+                transform: [{scale: checkmarkScale}],
+                opacity: checkmarkOpacity,
               },
             ]}>
-            <Ionicons name="information-circle" size={20} color={colors.accentTeal} />
-            <View style={styles.installmentInfoText}>
-              <Text style={[styles.infoTitle, {color: themeColors.textPrimary}]}>
-                Installment Plan
-              </Text>
-              <Text style={[styles.infoText, {color: themeColors.textSecondary}]}>
-                {installments} payments of {installmentAmount} each
-              </Text>
-              <Text style={[styles.infoText, {color: themeColors.textSecondary}]}>
-                Total: {amount || '0.00'}
-              </Text>
+            <View style={styles.checkmarkCircle}>
+              <Ionicons name="checkmark" size={64} color="#FFFFFF" />
             </View>
-          </View>
-        )}
+          </Animated.View>
 
-        <TouchableOpacity
-          style={[
-            styles.payButton,
-            {
-              backgroundColor: colors.accentTeal,
-            },
-          ]}
-          onPress={handlePayment}
-          activeOpacity={0.8}>
-          <Ionicons name="card" size={20} color={themeColors.bgPrimary} />
-          <Text
-            style={[
-              styles.payButtonText,
-              {
-                color: themeColors.bgPrimary,
-              },
-            ]}>
+          <Text style={styles.successTitle}>Payment Successful!</Text>
+          <Text style={styles.successMessage}>
             {installments > 1
-              ? `Pay ${installmentAmount} (1/${installments})`
-              : `Pay ${amount || '0.00'}`}
+              ? `${installments}x of USD ${installmentAmount} each\n\nTotal: USD ${amount}`
+              : `Your payment of USD ${amount} has been processed successfully.`}
           </Text>
+        </Animated.View>
+      </View>
+    );
+  }
+
+  // Format card number for display
+  const formatCardNumber = (cardNumber: string | undefined): string => {
+    if (!cardNumber || cardNumber === '**** **** **** ****') {
+      return '**** **** **** ****';
+    }
+    const digits = cardNumber.replace(/\D/g, '');
+    if (digits.length === 16) {
+      const first4 = digits.substring(0, 4);
+      const last4 = digits.substring(12, 16);
+      return `${first4} **** **** ${last4}`;
+    }
+    return '**** **** **** ****';
+  };
+
+  const cardNumber = formatCardNumber(account?.cardNumber);
+
+
+  return (
+    <View style={styles.container}>
+      <View style={[styles.header, {paddingTop: insets.top}]}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
-    </ScrollView>
+
+      <View style={styles.cardPaymentOverlay}>
+        <Animated.View
+          style={[
+            styles.cardPaymentContainer,
+            {
+              opacity: cardAnimation,
+              transform: [
+                {
+                  scale: cardAnimation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.8, 1],
+                  }),
+                },
+              ],
+            },
+          ]}>
+          <View style={styles.cardPaymentHeader}>
+            <Text style={[styles.cardPaymentTitle, {color: '#FFFFFF'}]}>
+              Processing Payment
+            </Text>
+            <Text style={[styles.cardPaymentSubtitle, {color: 'rgba(255, 255, 255, 0.7)'}]}>
+              Hold card near reader
+            </Text>
+          </View>
+
+          <View style={styles.cardDisplayContainer}>
+            <LinearGradient
+              colors={['#FFB700', '#358FDC']}
+              start={{x: 0, y: 0}}
+              end={{x: 1, y: 1}}
+              style={[
+                styles.paymentCardVisual,
+                {
+                  width: CARD_WIDTH,
+                  height: CARD_HEIGHT,
+                },
+              ]}>
+              <View style={styles.cardHeader}>
+                <VantisLogo size="small" variant="light" showText={false} />
+                <Ionicons name="wifi" size={24} color="rgba(255, 255, 255, 0.9)" />
+              </View>
+
+              <View style={styles.cardNumberContainer}>
+                <Text style={styles.cardNumberText}>{cardNumber}</Text>
+              </View>
+
+              <View style={styles.cardFooter}>
+                <View>
+                  <Text style={styles.cardLabel}>CARDHOLDER</Text>
+                  <Text style={styles.cardName}>
+                    {account?.publicKey ? 'SELF-CUSTODIAL' : 'YOUR NAME'}
+                  </Text>
+                </View>
+                <View>
+                  <Text style={styles.cardLabel}>VALID THRU</Text>
+                  <Text style={styles.cardExpiry}>12/28</Text>
+                </View>
+              </View>
+            </LinearGradient>
+          </View>
+        </Animated.View>
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  content: {
-    padding: spacing.md,
+    backgroundColor: '#000000',
   },
   header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.md,
   },
   backButton: {
-    marginRight: spacing.md,
+    padding: spacing.sm,
   },
-  title: {
+  cardPaymentOverlay: {
+    flex: 1,
+    backgroundColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardPaymentContainer: {
+    width: '100%',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  cardPaymentHeader: {
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  cardPaymentTitle: {
     fontSize: 24,
     fontWeight: '700',
+    marginBottom: spacing.sm,
   },
-  paymentCard: {
+  cardPaymentSubtitle: {
+    fontSize: 16,
+  },
+  cardDisplayContainer: {
+    marginBottom: spacing.xl,
+  },
+  paymentCardVisual: {
+    borderRadius: borderRadius.large,
     padding: spacing.xl,
-    borderRadius: borderRadius.medium,
-    borderWidth: 1,
-    marginBottom: spacing.xl,
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 8},
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 16,
   },
-  merchantSection: {
+  cardHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: spacing.md,
-    marginBottom: spacing.xl,
   },
-  merchantName: {
+  chipContainer: {
+    width: 50,
+    height: 40,
+  },
+  chip: {
+    width: 40,
+    height: 32,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  cardNumberContainer: {
+    marginVertical: spacing.lg,
+  },
+  cardNumberText: {
     fontSize: 20,
     fontWeight: '600',
+    color: '#FFFFFF',
+    letterSpacing: 4,
+    fontFamily: 'monospace',
   },
-  amountSection: {
-    alignItems: 'center',
-  },
-  amountLabel: {
-    fontSize: 14,
-    marginBottom: spacing.sm,
-  },
-  amountInput: {
-    fontSize: 48,
-    fontWeight: '700',
-    textAlign: 'center',
-    minWidth: 200,
-  },
-  installmentsSection: {
-    marginBottom: spacing.xl,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: spacing.sm,
-  },
-  sectionSubtitle: {
-    fontSize: 16,
-    marginBottom: spacing.lg,
-  },
-  installmentOptions: {
+  cardFooter: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
   },
-  installmentOption: {
-    width: '22%',
-    aspectRatio: 1,
-    borderRadius: borderRadius.medium,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-  },
-  installmentText: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  installmentInfo: {
-    flexDirection: 'row',
-    padding: spacing.md,
-    borderRadius: borderRadius.medium,
-    borderWidth: 1,
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
-  },
-  installmentInfoText: {
-    flex: 1,
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+  cardLabel: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.7)',
+    letterSpacing: 1,
     marginBottom: spacing.xs,
   },
-  infoText: {
+  cardName: {
     fontSize: 14,
-    lineHeight: 20,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    letterSpacing: 1,
   },
-  payButton: {
-    flexDirection: 'row',
+  cardExpiry: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  successContainer: {
+    flex: 1,
+    backgroundColor: '#000000',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  successContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.md,
-    borderRadius: borderRadius.medium,
-    gap: spacing.sm,
   },
-  payButtonText: {
-    fontSize: 18,
+  checkmarkContainer: {
+    marginBottom: spacing.xl,
+  },
+  checkmarkCircle: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#10B981',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#10B981',
+    shadowOffset: {width: 0, height: 8},
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 16,
+  },
+  successTitle: {
+    fontSize: 28,
     fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: spacing.md,
+    textAlign: 'center',
+  },
+  successMessage: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+    textAlign: 'center',
+    lineHeight: 24,
   },
 });
 
