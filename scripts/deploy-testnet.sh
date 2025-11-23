@@ -40,6 +40,7 @@ source "${SCRIPT_DIR}/utils.sh"
 
 RESET_DEPLOYMENT=false
 BUILD_CONTRACTS=true
+SKIP_INIT=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -55,6 +56,10 @@ while [[ $# -gt 0 ]]; do
             BUILD_CONTRACTS=false
             shift
             ;;
+        --skip-init)
+            SKIP_INIT=true
+            shift
+            ;;
         --help)
             echo "Usage: $0 [options]"
             echo ""
@@ -63,6 +68,7 @@ while [[ $# -gt 0 ]]; do
             echo "              forces fresh deployment with new contracts and new admin key"
             echo "  --build     Build contracts before deploying (default)"
             echo "  --no-build  Skip building contracts"
+            echo "  --skip-init Skip contract initialization (for already-initialized contracts)"
             echo "  --help      Show this help message"
             exit 0
             ;;
@@ -189,6 +195,13 @@ initialize_all_contracts() {
     stellar contract alias remove usdc --network testnet 2>/dev/null || true
     stellar contract alias add --id "$USDC_ADDRESS" usdc --network testnet
 
+    # Skip initialization if --skip-init flag is set
+    if [[ "$SKIP_INIT" == "true" ]]; then
+        log_warning "Skipping contract initialization (--skip-init flag set)"
+        log_success "All contracts initialized (skipped)"
+        return
+    fi
+
     # 1. Initialize Oracle Adapter
     log_info "Initializing Oracle Adapter..."
     local oracle_result
@@ -202,8 +215,8 @@ initialize_all_contracts() {
         2>&1)
     
     if [[ $? -ne 0 ]]; then
-        if [[ "$oracle_result" == *"already initialized"* ]]; then
-            log_warning "Oracle Adapter already initialized"
+        if [[ "$oracle_result" == *"already initialized"* ]] || [[ "$oracle_result" == *"UnreachableCodeReached"* ]]; then
+            log_warning "Oracle Adapter already initialized (skipping)"
         else
             log_error "Failed to initialize Oracle Adapter: ${oracle_result}"
             exit 1
@@ -227,8 +240,8 @@ initialize_all_contracts() {
         2>&1)
     
     if [[ $? -ne 0 ]]; then
-        if [[ "$blend_result" == *"already initialized"* ]]; then
-            log_warning "Blend Adapter already initialized"
+        if [[ "$blend_result" == *"already initialized"* ]] || [[ "$blend_result" == *"UnreachableCodeReached"* ]]; then
+            log_warning "Blend Adapter already initialized (skipping)"
         else
             log_error "Failed to initialize Blend Adapter: ${blend_result}"
             exit 1
@@ -247,14 +260,14 @@ initialize_all_contracts() {
         -- initialize \
         --admin "$ADMIN_ADDRESS" \
         --oracle "$ORACLE_ADDRESS" \
-        --usdc_token usdc \
+        --xlm_token "$XLM_ADDRESS" \
         --blend_pool_address "$BLEND_ADAPTER_ADDRESS" \
         --interest_params '{"base_rate":'"${DEFAULT_BASE_RATE}"',"slope1":'"${DEFAULT_SLOPE1}"',"slope2":'"${DEFAULT_SLOPE2}"',"optimal_utilization":'"${DEFAULT_OPTIMAL_UTILIZATION}"'}' \
         2>&1)
-    
+
     if [[ $? -ne 0 ]]; then
-        if [[ "$pool_result" == *"already initialized"* ]]; then
-            log_warning "Vantis Pool already initialized"
+        if [[ "$pool_result" == *"already initialized"* ]] || [[ "$pool_result" == *"UnreachableCodeReached"* ]]; then
+            log_warning "Vantis Pool already initialized (skipping)"
         else
             log_error "Failed to initialize Vantis Pool: ${pool_result}"
             exit 1

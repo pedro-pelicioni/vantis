@@ -169,12 +169,36 @@ create_funded_account() {
             fi
             return
         else
-            # Key file exists but CLI key is missing - we CANNOT recover the secret key
-            # Must generate a completely new keypair
-            log_warning "Keys file exists but CLI key missing for ${name}" >&2
-            log_warning "Secret key is lost - generating NEW keypair (old contracts will have different admin)" >&2
-            rm -f "$keys_file"
-            # Fall through to generate new key
+            # Key file exists but CLI key is missing - restore from saved secret key
+            log_info "Restoring ${name} key from saved file..." >&2
+            local saved_secret=$(jq -r '.secret_key' "$keys_file")
+            if [[ -n "$saved_secret" ]] && [[ "$saved_secret" != "null" ]]; then
+                # Import the saved secret key (requires interactive input, use expect or write to temp file)
+                # For now, use stellar keys add with a workaround
+                log_info "Re-importing secret key for ${name}..." >&2
+                # Write secret to temp file and use file-based import
+                local temp_secret=$(mktemp)
+                echo "$saved_secret" > "$temp_secret"
+                stellar keys add "${name}" --secret-key < "$temp_secret" 2>/dev/null || true
+                rm -f "$temp_secret"
+
+                # Verify the key was restored
+                if stellar keys address "${name}" &>/dev/null; then
+                    log_success "Key restored for ${name}" >&2
+                    if [[ "$name" == "admin" ]]; then
+                        jq -r '.public_key' "$keys_file"
+                    else
+                        echo "$name"
+                    fi
+                    return
+                else
+                    log_warning "Failed to restore key, generating new keypair" >&2
+                    rm -f "$keys_file"
+                fi
+            else
+                log_warning "No secret key in file, generating new keypair" >&2
+                rm -f "$keys_file"
+            fi
         fi
     fi
 
