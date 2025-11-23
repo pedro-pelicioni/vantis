@@ -70,12 +70,50 @@ Vantis implements a comprehensive three-layer risk mitigation system:
 
 ```
 vantis/
+├── contracts/         # Soroban smart contracts
+├── scripts/           # Deployment and testing scripts
 ├── frontend/          # Nuxt.js 3 frontend application
 ├── backend/           # Backend API and services
 └── README.md          # This file
 ```
 
 ## Getting Started
+
+### Prerequisites
+
+- [Stellar CLI](https://developers.stellar.org/docs/tools/developer-tools/cli/stellar-cli) installed
+- Rust toolchain with `wasm32-unknown-unknown` target
+
+### Testing on Testnet
+
+The recommended way to test the protocol is:
+
+1. **Deploy contracts to testnet:**
+   ```bash
+   ./scripts/deploy-testnet.sh
+   ```
+
+2. **Run the E2E payment flow tests:**
+   ```bash
+   ./scripts/e2e-tests.sh --suite payment
+   ```
+
+This will test the complete "Buy & Keep" payment flow:
+- Deposit collateral (XLM) → Blend Pool
+- Borrow USDC (JIT funding for card swipe)
+- Repay debt
+- Withdraw collateral
+
+### Deploy Script Options
+
+```bash
+./scripts/deploy-testnet.sh [options]
+
+Options:
+  --reset      Reset deployment and generate new contracts
+  --no-build   Skip building contracts
+  --skip-init  Skip contract initialization (for already-initialized contracts)
+```
 
 ### Frontend
 
